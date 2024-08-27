@@ -801,7 +801,75 @@ static uint8_t default_ScalingList_8x8_inter[64] = {
   41,41,54,54,54,71,71,91
 };
 
+#ifdef OPT_1
+void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int sizeId)
+{
+  const uint8_t* scanx, *scany;
+  int width;
+  int subWidth;
 
+  switch (sizeId) {
+  case 0:
+    width=4;
+    subWidth=1;
+    scanx = scan_order_x[0][2];
+    scany = scan_order_y[0][2];
+
+    for (int i=0;i<4*4;i++) {
+      scalingFactors[scanx[i] + width*scany[i]] = sclist[i];
+    }
+    break;
+
+  case 1:
+    width=8;
+    subWidth=1;
+    scanx = scan_order_x[0][3];
+    scany = scan_order_y[0][3];
+
+    for (int i=0;i<8*8;i++) {
+      scalingFactors[scanx[i] + width*scany[i]] = sclist[i];
+    }
+    break;
+
+  case 2:
+    width=8;
+    subWidth=2;
+    scanx = scan_order_x[0][3];
+    scany = scan_order_y[0][3];
+
+    for (int i=0;i<8*8;i++) {
+      for (int dy=0;dy<2;dy++)
+        for (int dx=0;dx<2;dx++)
+          {
+            int x = 2*scanx[i]+dx;
+            int y = 2*scany[i]+dy;
+            scalingFactors[x+width*subWidth*y] = sclist[i];
+          }
+    }
+    break;
+
+  case 3:
+    width=8;
+    subWidth=4;
+    scanx = scan_order_x[0][3];
+    scany = scan_order_y[0][3];
+
+    for (int i=0;i<8*8;i++) {
+      for (int dy=0;dy<4;dy++)
+        for (int dx=0;dx<4;dx++)
+          {
+            int x = 4*scanx[i]+dx;
+            int y = 4*scany[i]+dy;
+            scalingFactors[x+width*subWidth*y] = sclist[i];
+          }
+    }
+    break;
+
+  default:
+    assert(0);
+    break;
+  }
+#else
 void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int sizeId)
 {
   const position* scan;
@@ -865,7 +933,7 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
     assert(0);
     break;
   }
-
+#endif
 
   // --- dump matrix ---
 
@@ -1003,14 +1071,23 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
 
   // --- fill 32x32 matrices for chroma
-
+#ifdef OPT_1
+  const uint8_t* scan_x = scan_order_x[0][3];
+  const uint8_t* scan_y = scan_order_y[0][3];
+#else
   const position* scan = get_scan_order(3, 0 /* diag */);
-	
+#endif
+
   for (int matrixId=0;matrixId<6;matrixId++)
     if (matrixId!=0 && matrixId!=3) {
       for (int i=0;i<64;i++) {
+#ifdef OPT_1
+	int x = scan_x[i];
+	int y = scan_y[i];
+#else
 	int x = scan[i].x;
 	int y = scan[i].y;
+#endif
 	int v = sclist->ScalingFactor_Size1[matrixId][y][x];
 
 	for (int dy=0;dy<4;dy++)
@@ -1021,7 +1098,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
       sclist->ScalingFactor_Size3[matrixId][0][0] = sclist->ScalingFactor_Size1[matrixId][0][0];
     }
-  
+
   return DE265_OK;
 }
 

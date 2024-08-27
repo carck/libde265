@@ -7,14 +7,17 @@ project (libde265
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+message(WARNING "The architecture ${CMAKE_SYSTEM_PROCESSOR}")
 
 # The version number.
 set (NUMERIC_VERSION 0x01001500)
 set (PACKAGE_VERSION ${PROJECT_VERSION})
 
 include (${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
+#include (${CMAKE_ROOT}/Modules/CheckCXXCompilerFlag.cmake)
 include (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 
 include(GNUInstallDirs)
@@ -52,7 +55,9 @@ else()
   set(LIBS_PRIVATE "-lstdc++")
 endif()
 
-option(BUILD_SHARED_LIBS "Build shared library" ON)
+option(DISABLE_ARM "Disable ARM optimizations" OFF)
+
+option(BUILD_SHARED_LIBS "Build shared library" OFF)
 if(NOT BUILD_SHARED_LIBS)
   add_definitions(-DLIBDE265_STATIC_BUILD)
 endif()
@@ -63,6 +68,14 @@ include_directories ("${PROJECT_SOURCE_DIR}/libde265")
 if(MSVC)
   include_directories ("${PROJECT_SOURCE_DIR}/extra")
 endif()
+
+add_definitions(-DOPT_1)
+add_definitions(-DOPT_2)
+add_definitions(-DOPT_3)
+add_definitions(-DOPT_4)
+add_definitions(-DOPT_CABAC)
+#add_definitions(-DOPT_CABAC_BYPASS)
+add_definitions(-DOPT_RESIDUAL_CODING)
 
 option(ENABLE_DECODER "Enable Decoder" ON)
 option(ENABLE_ENCODER "Enable Encoder" OFF)

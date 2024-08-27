@@ -12,7 +12,9 @@ set (libde265_sources
   dpb.cc
   en265.cc
   fallback-dct.cc
-  fallback-motion.cc 
+  fallback-intrapred.cc
+  fallback-motion.cc
+  fallback-postfilter.cc
   fallback.cc
   image-io.cc
   image.cc
@@ -51,7 +53,9 @@ set (libde265_headers
   dpb.h
   en265.h
   fallback-dct.h
+  fallback-intrapred.h
   fallback-motion.h
+  fallback-postfilter.h
   fallback.h
   image-io.h
   image.h
@@ -94,6 +98,28 @@ add_definitions(-DLIBDE265_EXPORTS)
 
 add_subdirectory (encoder)
 
+if(NOT DISABLE_ARM)
+  string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" cpu_lowercase)
+  if(cpu_lowercase MATCHES "^arm")
+    set(TARGET_CPU "arm")
+    add_definitions(-DHAVE_ARM)
+    add_subdirectory (arm_new)
+    SET(DISABLE_SSE ON)
+  elseif(cpu_lowercase MATCHES "aarch64")
+    set(TARGET_CPU "arm64")
+    add_definitions(-DHAVE_ARM)
+    add_definitions(-DHAVE_ARM64)
+    add_subdirectory (arm_new)
+    SET(DISABLE_SSE ON)
+  else()
+    #message(WARNING "The architecture ${CMAKE_SYSTEM_PROCESSOR} is not "
+    #                "supported, falling back to the generic target")
+    SET(TARGET_CPU "generic")
+  endif()
+  #message(WARING "The architecture is ${TARGET_CPU}")
+endif()
+
+if(NOT DISABLE_SSE)
 check_c_source_compiles(
   "#if !defined(__x86_64) && !defined(__i386__) \
   && !defined(_M_IX86) && !defined(_M_AMD64)
@@ -111,17 +137,41 @@ if(HAVE_X86)
     check_c_compiler_flag(-msse2 SUPPORTS_SSE2)
     check_c_compiler_flag(-mssse3 SUPPORTS_SSSE3)
     check_c_compiler_flag(-msse4.1 SUPPORTS_SSE4_1)
+    check_c_compiler_flag(-mavx SUPPORTS_AVX)
+    check_c_compiler_flag(-mavx2 SUPPORTS_AVX2)
+    check_c_compiler_flag(-mavx512f SUPPORTS_AVX512F)
+    check_c_compiler_flag(-mavx512bw SUPPORTS_AVX512BW)
   endif (MSVC)
+
+  message(WARNING "SUPPORTS_AVX ${SUPPORTS_AVX}")
+  message(WARNING "SUPPORTS_AVX2 ${SUPPORTS_AVX2}")
+  message(WARNING "SUPPORTS_AVX512F ${SUPPORTS_AVX512F}")
+  message(WARNING "SUPPORTS_AVX512BW ${SUPPORTS_AVX512BW}")
 
   if(SUPPORTS_SSE4_1)
     add_definitions(-DHAVE_SSE4_1)
   endif()
-  if(SUPPORTS_SSE4_1 OR (SUPPORTS_SSE2 AND SUPPORTS_SSSE3))
-    add_subdirectory (x86)
+
+  if(SUPPORTS_AVX AND SUPPORTS_AVX2)
+    add_definitions(-DHAVE_AVX2)
+    set(CMAKE_CXX_FLAGS "-mavx")
+    set(CMAKE_CXX_FLAGS "-mavx2" )
+  endif()
+
+  if(SUPPORTS_AVX512F AND SUPPORTS_AVX512BW)
+    add_definitions(-DHAVE_AVX512)
+  endif()
+
+
+
+  if(SUPPORTS_SSE4_1 OR (SUPPORTS_SSE2 AND SUPPORTS_SSSE3) OR (SUPPORTS_AVX AND SUPPORTS_AVX2) OR (SUPPORTS_AVX512F AND SUPPORTS_AVX512BW))
+    add_subdirectory (x86_new)
   endif()
 endif()
+endif()
 
-add_library(de265 ${libde265_sources} ${ENCODER_OBJECTS} ${X86_OBJECTS})
+
+add_library(de265 ${libde265_sources} ${ENCODER_OBJECTS} ${DSP_OBJECTS})
 target_link_libraries(de265 PRIVATE Threads::Threads)
 target_include_directories(de265 PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
