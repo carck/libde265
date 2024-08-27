@@ -79,7 +79,7 @@ void ref_pic_set::compute_derived_values()
    - as a list of the relative POC deltas themselves, or
    - by shifting an existing ref-pic-set by some number of frames
    When shifting an existing set, the frame 0 is also shifted as an additional reference frame.
-   When coding the ref-pic-sets in the SPS, predicition is always from the previous set.
+   When coding the ref-pic-sets in the SPS, prediction is always from the previous set.
    In the slice header, the ref-pic-set can use any previous set as reference.
  */
 bool read_short_term_ref_pic_set(error_queue* errqueue,
@@ -416,7 +416,7 @@ void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE
 
   for (int i=set->NumNegativePics-1;i>=0;i--) {
     int n = set->DeltaPocS0[i];
-    if (n>=-range) {
+    if (n>=-range && n<=range) {
       if (set->UsedByCurrPicS0[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
     } else { log2fh(fh,"*%d%c ",n, set->UsedByCurrPicS0[i] ? 'X':'o'); }
@@ -424,7 +424,7 @@ void dump_compact_short_term_ref_pic_set(const ref_pic_set* set, int range, FILE
 
   for (int i=set->NumPositivePics-1;i>=0;i--) {
     int n = set->DeltaPocS1[i];
-    if (n<=range) {
+    if (n>=-range && n<=range) {
       if (set->UsedByCurrPicS1[i]) log[n+range] = 'X';
       else log[n+range] = 'o';
     } else { log2fh(fh,"*%d%c ",n, set->UsedByCurrPicS1[i] ? 'X':'o'); }

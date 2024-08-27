@@ -29,7 +29,7 @@ while true; do echo "Still alive at $(date) ..."; sleep 60; kill -0 "$$" || exit
 if [ -z "$TARGET_HOST" ]; then
     INSTALL_PACKAGES="$INSTALL_PACKAGES \
         valgrind \
-        libsdl-dev \
+        libsdl2-dev \
         qt5-default \
         libswscale-dev \
         "
@@ -85,13 +85,21 @@ if [ ! -z "$CMAKE" ]; then
         "
 fi
 
+# Workaround issues where the "azure.archive.ubuntu.com" mirror is not available
+# See https://github.com/actions/runner-images/issues/675
+sudo sed -i 's/azure\.//' /etc/apt/sources.list
+UPDATE_APT=1
+
 if [ ! -z "$UPDATE_APT" ]; then
     echo "Updating package lists ..."
     sudo apt-get update -qq
 fi
 
 if [ ! -z "$INSTALL_PACKAGES" ]; then
-    echo "Installing packages $INSTALL_PACKAGES ..."
+    echo "Held packages:"
+    sudo dpkg --get-selections | { grep hold || true; }   # { || true; } prevents CI from exiting when grep returns '1' (no match)
+
+    echo "Installing packages $INSTALL_PACKAGES"
     sudo apt-get install -qq $INSTALL_PACKAGES
 fi
 

@@ -92,7 +92,7 @@ void context_model_table::decouple()
 {
   if (D) printf("%p decouple (%p)\n",this,refcnt);
 
-  assert(refcnt); // not necessarily so, but we never use it on an unitialized object
+  assert(refcnt); // not necessarily so, but we never use it on an uninitialized object
 
   if (*refcnt > 1) {
     (*refcnt)--;
@@ -125,7 +125,7 @@ context_model_table& context_model_table::operator=(const context_model_table& s
 {
   if (D) printf("%p assign = %p\n",this,&src);
 
-  // assert(src.refcnt); // not necessarily so, but we never use it on an unitialized object
+  // assert(src.refcnt); // not necessarily so, but we never use it on an uninitialized object
 
   if (!src.refcnt) {
     release();
@@ -181,6 +181,8 @@ void context_model_table::decouple_or_alloc_with_empty_data()
   if (D) printf("%p (alloc)\n",this);
 
   model = new context_model[CONTEXT_MODEL_TABLE_LENGTH];
+  // Without initializing the model, we got an invalid model state during decoding (issue #236)
+  memset(model, 0, sizeof(context_model) * CONTEXT_MODEL_TABLE_LENGTH);
   refcnt= new int;
   *refcnt=1;
 }

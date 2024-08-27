@@ -278,18 +278,18 @@ int decode_CABAC_bit_16(CABAC_decoder* decoder, context_model* model)
   if (lps_mask ==0 && decoder->bits_needed == 0)
   {
     decoder->bits_needed = -16;
-    decoder->value |= (decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1]; 
+    decoder->value |= (decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1];
     if (decoder->bitstream_curr < decoder->bitstream_end)
-    { 
+    {
       decoder->bitstream_curr += 2;
     }
   }
 
   if(lps_mask < 0 && decoder->bits_needed >= 0)
   {
-    decoder->value |= ((decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1]) << decoder->bits_needed; 
+    decoder->value |= ((decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1]) << decoder->bits_needed;
     if (decoder->bitstream_curr < decoder->bitstream_end)
-    { 
+    {
       decoder->bitstream_curr += 2;
     }
     decoder->bits_needed -= 16;
@@ -316,7 +316,7 @@ int decode_CABAC_term_bit_8(CABAC_decoder* decoder)
   if (mask<0 && decoder->bits_needed==0)
   {
     decoder->bits_needed = -8;
-    if (decoder->bitstream_curr < decoder->bitstream_end) 
+    if (decoder->bitstream_curr < decoder->bitstream_end)
     {
       decoder->value += (*decoder->bitstream_curr++);
     }
@@ -341,9 +341,9 @@ int decode_CABAC_term_bit_16(CABAC_decoder* decoder)
   if (mask<0 && decoder->bits_needed == 0)
   {
     decoder->bits_needed = -16;
-    decoder->value += (decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1]; 
+    decoder->value += (decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1];
     if (decoder->bitstream_curr < decoder->bitstream_end)
-    { 
+    {
       decoder->bitstream_curr += 2;
     }
   }
@@ -357,7 +357,7 @@ int decode_CABAC_bypass_8(CABAC_decoder* decoder)
 {
   logtrace(LogCABAC,"[%3d] bypass r:%x v:%x\n",logcnt,decoder->range, decoder->value);
   int bit_new;
-  
+
   int range;
   decoder->value <<=1;
   decoder->bits_needed++;
@@ -381,7 +381,7 @@ int decode_CABAC_bypass_16(CABAC_decoder* decoder)
 {
   logtrace(LogCABAC,"[%3d] bypass r:%x v:%x\n",logcnt,decoder->range, decoder->value);
   int bit_new;
-  
+
   int range;
   decoder->value <<=1;
   decoder->bits_needed++;
@@ -389,8 +389,8 @@ int decode_CABAC_bypass_16(CABAC_decoder* decoder)
   if (decoder->bits_needed >= 0)
   {
     decoder->bits_needed = -16;
-    decoder->value |= (decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1]; 
-    if (decoder->bitstream_end > decoder->bitstream_curr) 
+    decoder->value |= (decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1];
+    if (decoder->bitstream_end > decoder->bitstream_curr)
     {
       decoder->bitstream_curr += 2;
     }
@@ -410,7 +410,7 @@ int decode_CABAC_FL_bypass_parallel_8(CABAC_decoder* decoder, int nBits)
 {
   logtrace(LogCABAC,"[%3d] bypass group r:%x v:%x (nBits=%d)\n",logcnt,
            decoder->range, decoder->value, nBits);
-           
+
   int value_new;
   decoder->value <<= nBits;
   decoder->bits_needed += nBits;
@@ -429,7 +429,7 @@ int decode_CABAC_FL_bypass_parallel_8(CABAC_decoder* decoder, int nBits)
   value_new = decoder->value / scaled_range;
   if (unlikely(value_new>=(1<<nBits))) { value_new=(1<<nBits)-1; } // may happen with broken bitstreams
   decoder->value -= value_new * scaled_range;
-  
+
   return value_new;
 }
 
@@ -437,18 +437,18 @@ int decode_CABAC_FL_bypass_parallel_16(CABAC_decoder* decoder, int nBits)
 {
   logtrace(LogCABAC,"[%3d] bypass group r:%x v:%x (nBits=%d)\n",logcnt,
            decoder->range, decoder->value, nBits);
-           
+
   int value_new;
   decoder->value <<= nBits;
   decoder->bits_needed += nBits;
 
   if (decoder->bits_needed >= 0)
   {
-    int input = (decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1]; 
+    int input = (decoder->bitstream_curr[0] << 8) + decoder->bitstream_curr[1];
     input <<= decoder->bits_needed;
     decoder->bits_needed -= 16;
     decoder->value |= input;
-    if (decoder->bitstream_end > decoder->bitstream_curr) 
+    if (decoder->bitstream_end > decoder->bitstream_curr)
     {
       decoder->bitstream_curr += 2;
     }
@@ -458,7 +458,7 @@ int decode_CABAC_FL_bypass_parallel_16(CABAC_decoder* decoder, int nBits)
   value_new = decoder->value / scaled_range;
   if (unlikely(value_new>=(1<<nBits))) { value_new=(1<<nBits)-1; } // may happen with broken bitstreams
   decoder->value -= value_new * scaled_range;
-  
+
   return value_new;
 }
 #endif
@@ -470,7 +470,7 @@ void read_bytes(CABAC_decoder* decoder)
   if (decoder->bitstream_curr < decoder->bitstream_end)
 #endif
   {
-#if CABAC_BITS == 16 
+#if CABAC_BITS == 16
     decoder->value += (decoder->bitstream_curr[0]<<9) + (decoder->bitstream_curr[1]<<1);
 #else
     decoder->value += (decoder->bitstream_curr[0]<<1);
@@ -580,7 +580,7 @@ int decode_CABAC_bit_new(CABAC_decoder* decoder, context_model* model)
     x = decoder->value ^ (decoder->value-1);
     i = 7 - libde265_norm_shift[x>>(CABAC_BITS-1)];
     x = -CABAC_MASK;
-#if CABAC_BITS == 16 
+#if CABAC_BITS == 16
     x += (decoder->bitstream_curr[0]<<9) + (decoder->bitstream_curr[1]<<1);
 #else
     x += (decoder->bitstream_curr[0]<<1);
@@ -622,7 +622,7 @@ int decode_CABAC_bypass_new(CABAC_decoder* decoder)
 {
   logtrace(LogCABAC,"[%3d] bypass r:%x v:%x\n",logcnt,decoder->range, decoder->value);
   int bit_new;
-  
+
   int range;
   decoder->value <<=1;
 
@@ -910,6 +910,8 @@ int  decode_CABAC_bypass(CABAC_decoder* decoder)
   return decoder->decode_CABAC_bypass_ptr(decoder);
 }
 #else
+// When we read past the end of the bitstream (which should only happen on faulty bitstreams),
+// we will eventually only return zeros.
 int  decode_CABAC_bypass(CABAC_decoder* decoder)
 {
   logtrace(LogCABAC,"[%3d] bypass r:%x v:%x\n",logcnt,decoder->range, decoder->value);
@@ -921,6 +923,10 @@ int  decode_CABAC_bypass(CABAC_decoder* decoder)
       if (decoder->bitstream_end > decoder->bitstream_curr) {
         decoder->bits_needed = -8;
         decoder->value |= *decoder->bitstream_curr++;
+      }
+      else {
+        // we read past the end of the bitstream, fill with 0
+        decoder->bits_needed = -8;
       }
     }
 
@@ -1009,9 +1015,9 @@ int  decode_CABAC_FL_bypass_parallel(CABAC_decoder* decoder, int nBits)
 #endif
 
 
-int  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits)
+uint32_t  decode_CABAC_FL_bypass(CABAC_decoder* decoder, int nBits)
 {
-  int value=0;
+  uint32_t value=0;
 
   if (likely(nBits<=8)) {
     if (nBits==0) {
@@ -1125,6 +1131,8 @@ void CABAC_encoder_bitstream::write_bits(uint32_t bits,int n)
   vlc_buffer |= bits;
   vlc_buffer_len += n;
 
+  // TODO: errors returned by append_byte() are ignored, resulting in a broken output.
+
   while (vlc_buffer_len>=8) {
     append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
     vlc_buffer_len -= 8;
@@ -1157,6 +1165,8 @@ void CABAC_encoder::write_svlc(int value)
 
 void CABAC_encoder_bitstream::flush_VLC()
 {
+  // TODO: errors returned by append_byte() are ignored, resulting in a broken output.
+
   while (vlc_buffer_len>=8) {
     append_byte((vlc_buffer >> (vlc_buffer_len-8)) & 0xFF);
     vlc_buffer_len -= 8;
@@ -1190,7 +1200,7 @@ int  CABAC_encoder_bitstream::number_free_bits_in_byte() const
 }
 
 
-void CABAC_encoder_bitstream::check_size_and_resize(int nBytes)
+bool CABAC_encoder_bitstream::check_size_and_resize(int nBytes)
 {
   if (data_size+nBytes > data_capacity) { // 1 extra byte for stuffing
     if (data_capacity==0) {
@@ -1199,14 +1209,24 @@ void CABAC_encoder_bitstream::check_size_and_resize(int nBytes)
       data_capacity *= 2;
     }
 
-    data_mem = (uint8_t*)realloc(data_mem,data_capacity);
+    uint8_t* new_data_mem = (uint8_t*)realloc(data_mem,data_capacity);
+    if (new_data_mem) {
+      data_mem = new_data_mem;
+    }
+    else {
+      return false;
+    }
   }
+
+  return true;
 }
 
 
-void CABAC_encoder_bitstream::append_byte(int byte)
+bool CABAC_encoder_bitstream::append_byte(int byte)
 {
-  check_size_and_resize(2);
+  if (!check_size_and_resize(2)) {
+    return false;
+  }
 
   // --- emulation prevention ---
 
@@ -1236,17 +1256,23 @@ void CABAC_encoder_bitstream::append_byte(int byte)
   // write actual data byte
 
   data_mem[ data_size++ ] = byte;
+
+  return true;
 }
 
 
-void CABAC_encoder_bitstream::write_startcode()
+bool CABAC_encoder_bitstream::write_startcode()
 {
-  check_size_and_resize(3);
+  if (!check_size_and_resize(3)) {
+    return false;
+  }
 
   data_mem[ data_size+0 ] = 0;
   data_mem[ data_size+1 ] = 0;
   data_mem[ data_size+2 ] = 1;
   data_size+=3;
+
+  return true;
 }
 
 void CABAC_encoder_bitstream::init_CABAC()
@@ -1261,6 +1287,8 @@ void CABAC_encoder_bitstream::init_CABAC()
 
 void CABAC_encoder_bitstream::flush_CABAC()
 {
+  // TODO: errors returned by append_byte() are ignored, resulting in a broken output.
+
   if (low >> (32 - bits_left))
     {
       append_byte(buffered_byte + 1);
@@ -1294,6 +1322,8 @@ void CABAC_encoder_bitstream::flush_CABAC()
 
 void CABAC_encoder_bitstream::write_out()
 {
+  // TODO: errors returned by append_byte() are ignored, resulting in a broken output.
+
   //logtrace(LogCABAC,"low = %08x (bits_left=%d)\n",low,bits_left);
   int leadByte = low >> (24 - bits_left);
   bits_left += 8;

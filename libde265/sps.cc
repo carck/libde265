@@ -722,7 +722,7 @@ void seq_parameter_set::dump(int fd) const
 
   LOG1("num_short_term_ref_pic_sets : %d\n", ref_pic_sets.size());
 
-  for (int i = 0; i < ref_pic_sets.size(); i++) {
+  for (size_t i = 0; i < ref_pic_sets.size(); i++) {
     LOG1("ref_pic_set[ %2d ]: ",i);
     dump_compact_short_term_ref_pic_set(&ref_pic_sets[i], 16, fh);
   }
@@ -812,8 +812,8 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
   case 0:
     width=4;
     subWidth=1;
-    scanx = scan_order_x[0][2]; 
-    scany = scan_order_y[0][2]; 
+    scanx = scan_order_x[0][2];
+    scany = scan_order_y[0][2];
 
     for (int i=0;i<4*4;i++) {
       scalingFactors[scanx[i] + width*scany[i]] = sclist[i];
@@ -823,8 +823,8 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
   case 1:
     width=8;
     subWidth=1;
-    scanx = scan_order_x[0][3]; 
-    scany = scan_order_y[0][3]; 
+    scanx = scan_order_x[0][3];
+    scany = scan_order_y[0][3];
 
     for (int i=0;i<8*8;i++) {
       scalingFactors[scanx[i] + width*scany[i]] = sclist[i];
@@ -834,8 +834,8 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
   case 2:
     width=8;
     subWidth=2;
-    scanx = scan_order_x[0][3]; 
-    scany = scan_order_y[0][3]; 
+    scanx = scan_order_x[0][3];
+    scany = scan_order_y[0][3];
 
     for (int i=0;i<8*8;i++) {
       for (int dy=0;dy<2;dy++)
@@ -851,8 +851,8 @@ void fill_scaling_factor(uint8_t* scalingFactors, const uint8_t* sclist, int siz
   case 3:
     width=8;
     subWidth=4;
-    scanx = scan_order_x[0][3]; 
-    scany = scan_order_y[0][3]; 
+    scanx = scan_order_x[0][3];
+    scany = scan_order_y[0][3];
 
     for (int i=0;i<8*8;i++) {
       for (int dy=0;dy<4;dy++)
@@ -969,13 +969,16 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
       if (!scaling_list_pred_mode_flag) {
         int scaling_list_pred_matrix_id_delta = get_uvlc(br);
 
-	if (sizeId==3) {
-	  // adapt to our changed matrixId for size 3
-	  scaling_list_pred_matrix_id_delta *= 3;
-	}
-	
-        if (scaling_list_pred_matrix_id_delta == UVLC_ERROR ||
-            scaling_list_pred_matrix_id_delta > matrixId) {
+        if (scaling_list_pred_matrix_id_delta == UVLC_ERROR) {
+          return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
+        }
+
+        if (sizeId == 3) {
+          // adapt to our changed matrixId for size 3
+          scaling_list_pred_matrix_id_delta *= 3;
+        }
+
+        if (scaling_list_pred_matrix_id_delta > matrixId) {
           return DE265_ERROR_CODED_PARAMETER_OUT_OF_RANGE;
         }
 
@@ -1069,12 +1072,12 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
   // --- fill 32x32 matrices for chroma
 #ifdef OPT_1
-  const uint8_t* scan_x = scan_order_x[0][3]; 
-  const uint8_t* scan_y = scan_order_y[0][3]; 
+  const uint8_t* scan_x = scan_order_x[0][3];
+  const uint8_t* scan_y = scan_order_y[0][3];
 #else
   const position* scan = get_scan_order(3, 0 /* diag */);
 #endif
-	
+
   for (int matrixId=0;matrixId<6;matrixId++)
     if (matrixId!=0 && matrixId!=3) {
       for (int i=0;i<64;i++) {
@@ -1095,7 +1098,7 @@ de265_error read_scaling_list(bitreader* br, const seq_parameter_set* sps,
 
       sclist->ScalingFactor_Size3[matrixId][0][0] = sclist->ScalingFactor_Size1[matrixId][0][0];
     }
-  
+
   return DE265_OK;
 }
 

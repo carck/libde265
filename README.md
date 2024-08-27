@@ -60,7 +60,7 @@ the included `autogen.sh` script to generate the `configure` script.
 libde265 has no dependencies on other libraries, but both optional example programs
 have dependencies on:
 
-- SDL (optional for dec265's YUV overlay output),
+- SDL2 (optional for dec265's YUV overlay output),
 
 - Qt (required for sherlock265),
 
@@ -106,6 +106,22 @@ See the [cmake documentation](http://www.cmake.org) for further information on
 using cmake on other platforms.
 
 
+Building using vcpkg
+====================
+
+You can build and install libde265 using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager:
+
+```
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+./vcpkg install libde265
+```
+
+The libde265 port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+
+
 Prebuilt binaries
 =================
 
@@ -130,6 +146,11 @@ Libde265 has been integrated into these applications:
 - libde265.js JavaScript decoder [source](https://github.com/strukturag/libde265.js), [demo](https://strukturag.github.io/libde265.js/).
 
 
+## Packaging status
+
+[![libde265 packaging status](https://repology.org/badge/vertical-allrepos/libde265.svg?exclude_unsupported=1&columns=3&exclude_sources=modules,site&header=libde265%20packaging%20status)](https://repology.org/project/libheif/versions)
+
+
 License
 =======
 
@@ -139,5 +160,8 @@ the terms of the MIT license.
 
 See `COPYING` for more details.
 
+The short video clip in the 'testdata' directory is from the movie 'Girl Shy', which is in the public domain.
+
 Copyright (c) 2013-2014 Struktur AG
-Contact: Dirk Farin <farin@struktur.de>
+Copyright (c) 2013-2023 Dirk Farin
+Contact: Dirk Farin <dirk.farin@gmail.com>

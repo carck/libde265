@@ -296,6 +296,16 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
             slice_segment_header* shdrQ = img->get_SliceHeader(xDi   ,yDi);
 
 	    if (shdrP && shdrQ) {
+
+        if (mviP.refIdx[0] > MAX_NUM_REF_PICS ||
+            mviP.refIdx[1] > MAX_NUM_REF_PICS ||
+            mviQ.refIdx[0] > MAX_NUM_REF_PICS ||
+            mviQ.refIdx[1] > MAX_NUM_REF_PICS) {
+          // we cannot return an error from here, so just set a valid boundaryStrength value and continue;
+          img->set_deblk_bS(xDi, yDi, 0);
+          continue;
+        }
+
 	      int refPicP0 = mviP.predFlag[0] ? shdrP->RefPicList[0][ mviP.refIdx[0] ] : -1;
 	      int refPicP1 = mviP.predFlag[1] ? shdrP->RefPicList[1][ mviP.refIdx[1] ] : -1;
 	      int refPicQ0 = mviQ.predFlag[0] ? shdrQ->RefPicList[0][ mviQ.refIdx[0] ] : -1;
@@ -732,7 +742,7 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
         int bs1 = vertical ? img->get_deblk_bS(xDi,yDi+4) : img->get_deblk_bS(xDi+4,yDi);
 
         //std::cout << y << " " << x << std::endl;
-        
+
         if(bs0 || bs1){
           int QP_Q = img->get_QPY(xDi,yDi);
           int QP_P = vertical ? img->get_QPY(xDi-1,yDi) : img->get_QPY(xDi,yDi-1);
@@ -775,7 +785,7 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
               if (img->get_cu_transquant_bypass(xDi+4,yDi-1)) no_p[1]=false;
               if (img->get_pcm_flag(xDi+4,yDi))  no_q[1]=false;
               if (img->get_cu_transquant_bypass(xDi+4,yDi))  no_q[1]=false;
-            } 
+            }
             if(no_p[0] && no_p[1] && no_q[0] && no_q[1])
               img->decctx->acceleration.loop_filter_luma<pixel_t>(ptr, vertical, stride, beta, tc, no_p, no_q, bitDepth_Y);
             else
@@ -1511,7 +1521,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
           //   std::cout << std::endl;
           // }
           // std::cout << std::endl;
-          
+
 
 #if 0
           for (int k=0;k<4;k++)
@@ -1668,7 +1678,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
           //   std::cout << std::endl;
           // }
           // std::cout << std::endl;
-          
+
 
 #if 0
           for (int k=0;k<4;k++)
@@ -1732,7 +1742,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
               if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x-1,luma_y + 4*SubHeightC)) no_p[1]=false;
               if (img->get_cu_transquant_bypass(luma_x-1,luma_y+ 4*SubHeightC)) no_p[1]=false;
               if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x,luma_y+ 4*SubHeightC)) no_q[1]=false;
-              if (img->get_cu_transquant_bypass(luma_x,luma_y+ 4*SubHeightC)) no_q[1]=false; 
+              if (img->get_cu_transquant_bypass(luma_x,luma_y+ 4*SubHeightC)) no_q[1]=false;
             }
             else {
               if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x,luma_y-1)) no_p[0]=false;

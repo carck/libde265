@@ -48,19 +48,24 @@ LIBDE265_API uint32_t de265_get_version_number(void)
     return (LIBDE265_NUMERIC_VERSION);
 }
 
+static uint8_t bcd2dec(uint8_t v)
+{
+  return (v>>4) * 10 + (v & 0x0F);
+}
+
 LIBDE265_API int de265_get_version_number_major(void)
 {
-  return ((LIBDE265_NUMERIC_VERSION)>>24) & 0xFF;
+  return bcd2dec(((LIBDE265_NUMERIC_VERSION)>>24) & 0xFF);
 }
 
 LIBDE265_API int de265_get_version_number_minor(void)
 {
-  return ((LIBDE265_NUMERIC_VERSION)>>16) & 0xFF;
+  return bcd2dec(((LIBDE265_NUMERIC_VERSION)>>16) & 0xFF);
 }
 
 LIBDE265_API int de265_get_version_number_maintenance(void)
 {
-  return ((LIBDE265_NUMERIC_VERSION)>>8) & 0xFF;
+  return bcd2dec(((LIBDE265_NUMERIC_VERSION)>>8) & 0xFF);
 }
 
 
@@ -159,6 +164,18 @@ LIBDE265_API const char* de265_get_error_text(de265_error err)
     return "collocated motion-vector is outside image area";
   case DE265_WARNING_PCM_BITDEPTH_TOO_LARGE:
     return "PCM bit-depth too large";
+  case DE265_WARNING_REFERENCE_IMAGE_BIT_DEPTH_DOES_NOT_MATCH:
+    return "Bit-depth of reference image does not match current image";
+  case DE265_WARNING_REFERENCE_IMAGE_SIZE_DOES_NOT_MATCH_SPS:
+    return "Size of reference image does not match current size in SPS";
+  case DE265_WARNING_CHROMA_OF_CURRENT_IMAGE_DOES_NOT_MATCH_SPS:
+    return "Chroma format of current image does not match chroma in SPS";
+  case DE265_WARNING_BIT_DEPTH_OF_CURRENT_IMAGE_DOES_NOT_MATCH_SPS:
+    return "Bit-depth of current image does not match SPS";
+  case DE265_WARNING_REFERENCE_IMAGE_CHROMA_FORMAT_DOES_NOT_MATCH:
+    return "Chroma format of reference image does not match current image";
+  case DE265_WARNING_INVALID_SLICE_HEADER_INDEX_ACCESS:
+    return "Access with invalid slice header index";
 
   default: return "unknown error";
   }
@@ -181,7 +198,7 @@ static std::mutex& de265_init_mutex()
 
 LIBDE265_API de265_error de265_init()
 {
-#if !OPT_RESIDUAL_CODING  
+#if !OPT_RESIDUAL_CODING
   std::lock_guard<std::mutex> lock(de265_init_mutex());
   if (de265_init_count > 1) {
     // we are not the first -> already initialized
@@ -195,7 +212,7 @@ LIBDE265_API de265_error de265_init()
   init_scan_orders();
 #endif
 
-#if !OPT_RESIDUAL_CODING  
+#if !OPT_RESIDUAL_CODING
   if (!alloc_and_init_significant_coeff_ctxIdx_lookupTable()) {
     de265_init_count--;
     return DE265_ERROR_LIBRARY_INITIALIZATION_FAILED;
@@ -207,7 +224,7 @@ LIBDE265_API de265_error de265_init()
 
 LIBDE265_API de265_error de265_free()
 {
-#if !OPT_RESIDUAL_CODING    
+#if !OPT_RESIDUAL_CODING
   std::lock_guard<std::mutex> lock(de265_init_mutex());
 
   if (de265_init_count<=0) {

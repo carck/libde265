@@ -2,11 +2,11 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([libde265], [1.0.8], [farin@struktur.de])
+AC_INIT([libde265], [1.0.15], [dirk.farin@gmail.com])
 AC_CONFIG_SRCDIR([libde265/de265.cc])
 AC_CONFIG_HEADERS([config.h])
 
-NUMERIC_VERSION=0x01000800 # Numeric representation of the version (A.B.C[.D] = 0xAABBCCDD)
+NUMERIC_VERSION=0x01001500 # Numeric representation of the version (A.B.C[.D] = 0xAABBCCDD)
 AC_SUBST(NUMERIC_VERSION)
 
 # From https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html:
@@ -16,7 +16,7 @@ AC_SUBST(NUMERIC_VERSION)
 # If any interfaces have been removed or changed since the last public release, then set age to 0.
 
 LIBDE265_CURRENT=1
-LIBDE265_REVISION=1
+LIBDE265_REVISION=8
 LIBDE265_AGE=1
 
 # ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ HAVE_VISIBILITY=0
 AM_CONDITIONAL([HAVE_VISIBILITY], [test "x$HAVE_VISIBILITY" != "x0"])
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdint.h stdlib.h string.h malloc.h signal.h setjmp.h stddef.h sys/time.h])
+AC_CHECK_HEADERS([stdlib.h string.h malloc.h signal.h setjmp.h stddef.h sys/time.h])
 
 AC_LANG_PUSH(C++)
 OLD_CPPFLAGS="$CPPFLAGS"
@@ -105,6 +105,9 @@ AC_FUNC_ERROR_AT_LINE
 # AC_FUNC_MALLOC
 # AC_FUNC_REALLOC
 AC_FUNC_MKTIME
+
+LIBS_PRIVATE="$LIBS -lstdc++"
+AC_SUBST(LIBS_PRIVATE)
 
 AM_CONDITIONAL(MINGW, expr $host : '.*-mingw' >/dev/null 2>&1)
 
@@ -180,8 +183,8 @@ AC_MSG_RESULT([$has_nullptr])
 
 
 
-AC_ARG_ENABLE([encoder], AS_HELP_STRING([--disable-encoder], [Do not build encoder.]))
-if eval "test x$enable_encoder = x"      ; then enable_encoder=yes ; fi
+AC_ARG_ENABLE([encoder], AS_HELP_STRING([--enable-encoder], [Build the encoder (experimental).]))
+if eval "test x$enable_encoder = x"      ; then enable_encoder=no ; fi
 
 AM_CONDITIONAL([ENABLE_ENCODER], [test x"$enable_encoder" = x"yes"])
 
@@ -385,8 +388,8 @@ if eval "test x$enable_dec265 = xyes" || eval "test x$enable_sherlock265 = xyes"
 fi
 
 if eval "test x$enable_dec265 = xyes" ; then
-   PKG_CHECK_MODULES([SDL], [sdl],
-                     [AC_DEFINE([HAVE_SDL], [1], [Whether libsdl was found.])
+   PKG_CHECK_MODULES([SDL], [sdl2],
+                     [AC_DEFINE([HAVE_SDL], [1], [Whether libsdl2 was found.])
                       AC_SUBST(SDL_CFLAGS)
                       AC_SUBST(SDL_LIBS)
                       have_sdl="yes"],
@@ -409,7 +412,7 @@ AM_CONDITIONAL([HAVE_SWSCALE], [test "x$have_swscale" = "xyes"])
 AM_CONDITIONAL([HAVE_SDL], [test "x$have_sdl" = "xyes"])
 
 if eval "test $enable_dec265 = yes" && eval "test $have_videogfx != yes" && eval "test $have_sdl != yes" ; then
-  AC_MSG_WARN([Did not find libvideogfx or libsdl, video output of dec265 will be disabled.])
+  AC_MSG_WARN([Did not find libvideogfx or libsdl2, video output of dec265 will be disabled.])
 fi
 
 if eval "test $enable_sherlock265 = yes" && eval "test $have_videogfx != yes" && eval "test $have_swscale != yes" ; then
