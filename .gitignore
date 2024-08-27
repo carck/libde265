@@ -19,6 +19,8 @@ configure
 *.la
 de265-config.h
 libde265.pc
+build
+.idea
 
 # MSVC
 *.sln

@@ -7,20 +7,28 @@ project (libde265
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+message(WARNING "The architecture ${CMAKE_SYSTEM_PROCESSOR}")
 
 # The version number.
 set (NUMERIC_VERSION 0x01000800)
 set (PACKAGE_VERSION ${PROJECT_VERSION})
 
 include (${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
+#include (${CMAKE_ROOT}/Modules/CheckCXXCompilerFlag.cmake)
 include (${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 
 include(GNUInstallDirs)
 include(CheckFunctionExists)
 
-find_package(SDL)
+option(ENABLE_SDL "Enable SDL" ON)
+
+if (ENABLE_SDL)
+	find_package(SDL)
+endif()
+
 find_package(Threads REQUIRED)
 
 CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
@@ -49,7 +57,9 @@ endif()
 
 option(DISABLE_SSE "Disable SSE optimizations" OFF)
 
-option(BUILD_SHARED_LIBS "Build shared library" ON)
+option(DISABLE_ARM "Disable ARM optimizations" OFF)
+
+option(BUILD_SHARED_LIBS "Build shared library" OFF)
 if(NOT BUILD_SHARED_LIBS)
   add_definitions(-DLIBDE265_STATIC_BUILD)
 endif()
@@ -62,6 +72,14 @@ if(MSVC)
   add_definitions(-DHAVE_STDINT_H)
   add_definitions(-DHAVE_STDBOOL_H)
 endif()
+
+add_definitions(-DOPT_1)
+add_definitions(-DOPT_2)
+add_definitions(-DOPT_3)
+add_definitions(-DOPT_4)
+add_definitions(-DOPT_CABAC)
+#add_definitions(-DOPT_CABAC_BYPASS)
+add_definitions(-DOPT_RESIDUAL_CODING)
 
 add_subdirectory (libde265)
 add_subdirectory (dec265)

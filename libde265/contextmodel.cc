@@ -23,7 +23,7 @@
 #include <iomanip>
 #include <sstream>
 
-bool D = false;
+const bool D = false;
 
 context_model_table::context_model_table()
   : model(NULL), refcnt(NULL)
@@ -185,30 +185,37 @@ void context_model_table::decouple_or_alloc_with_empty_data()
   *refcnt=1;
 }
 
-
-
-
-
-
 static void set_initValue(int SliceQPY,
                           context_model* model, int initValue, int nContexts)
 {
+#ifdef OPT_CABAC
+  int mm = (initValue >> 4) * 5 - 45;
+  int nn = ((initValue & 15) << 3) - 16;
+  for (int i=0;i<nContexts;i++) {
+    int xx = (((mm * Clip3(0, 51, SliceQPY)) >> 4) + nn);
+    int pre = 2 * xx - 127;
+    pre ^= pre >> 31;
+    if (pre > 124)
+      pre = 124 + (pre & 1);
+    model[i].state = pre;
+  }
+#else
   int slopeIdx = initValue >> 4;
   int intersecIdx = initValue & 0xF;
   int m = slopeIdx*5 - 45;
   int n = (intersecIdx<<3) - 16;
   int preCtxState = Clip3(1,126, ((m*Clip3(0,51, SliceQPY))>>4)+n);
 
-  // logtrace(LogSlice,"QP=%d slopeIdx=%d intersecIdx=%d m=%d n=%d\n",SliceQPY,slopeIdx,intersecIdx,m,n);
+  logtrace(LogSlice,"QP=%d slopeIdx=%d intersecIdx=%d m=%d n=%d\n",SliceQPY,slopeIdx,intersecIdx,m,n);
 
   for (int i=0;i<nContexts;i++) {
     model[i].MPSbit=(preCtxState<=63) ? 0 : 1;
     model[i].state = model[i].MPSbit ? (preCtxState-64) : (63-preCtxState);
-
     // model state will always be between [0;62]
-
     assert(model[i].state <= 62);
   }
+#endif
+
 }
 
 

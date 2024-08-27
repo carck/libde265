@@ -23,6 +23,18 @@
 
 #include <stdint.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef OPT_1
+extern const uint8_t* scan_order_y[3][7];
+extern const uint8_t* scan_order_x[3][7];
+extern const uint8_t* scans_bk[3][6];
+extern const uint8_t* scans_pos[3][6];
+const uint8_t* get_scan_order_x(int log2BlockSize, int scanIdx);
+const uint8_t* get_scan_order_y(int log2BlockSize, int scanIdx);
+#endif
 typedef struct {
   uint8_t x,y;
 } position;
@@ -32,6 +44,7 @@ typedef struct {
   uint8_t scanPos;
 } scan_position;
 
+#ifndef OPT_1
 void init_scan_orders();
 
 /* scanIdx: 0 - diag, 1 - horiz, 2 - verti
@@ -39,5 +52,6 @@ void init_scan_orders();
 const position* get_scan_order(int log2BlockSize, int scanIdx);
 
 scan_position get_scan_position(int x,int y, int scanIdx, int log2BlkSize);
+#endif
 
 #endif

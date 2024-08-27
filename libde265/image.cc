@@ -120,8 +120,13 @@ static int  de265_image_get_buffer(de265_decoder_context* ctx,
   int luma_bpl   = luma_stride   * ((img->BitDepth_Y+7)/8);
   int chroma_bpl = chroma_stride * ((img->BitDepth_C+7)/8);
 
+#ifdef OPT_4
+  int luma_height   = (spec->height    + spec->alignment-1) / spec->alignment * spec->alignment;
+  int chroma_height = (rawChromaHeight + spec->alignment-1) / spec->alignment * spec->alignment;
+#else
   int luma_height   = spec->height;
   int chroma_height = rawChromaHeight;
+#endif
 
   bool alloc_failed = false;
 
@@ -247,7 +252,9 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                 allocated to the requested size. Without the release, the old image-data
                 will not be freed. */
 
-  ID = s_next_image_ID++;
+  //ID = s_next_image_ID++;
+  ID = s_next_image_ID;
+  __sync_fetch_and_add(&s_next_image_ID,1);
   removed_at_picture_id = std::numeric_limits<int32_t>::max();
 
   decctx = dctx;
@@ -419,9 +426,13 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                               sps->Log2MinPUSize);
 
     // cb info
-
+#ifdef OPT_4
+    mem_alloc_success &= cb_info.alloc(sps->PicWidthInMinCbsY+1, sps->PicHeightInMinCbsY+1,
+                                       sps->Log2MinCbSizeY);
+#else
     mem_alloc_success &= cb_info.alloc(sps->PicWidthInMinCbsY, sps->PicHeightInMinCbsY,
                                        sps->Log2MinCbSizeY);
+#endif
 
     // pb info
 
@@ -437,9 +448,13 @@ de265_error de265_image::alloc_image(int w,int h, enum de265_chroma c,
                                        sps->Log2MinTrafoSize);
 
     // deblk info
-
+#ifdef OPT_4
+    int deblk_w = (sps->pic_width_in_luma_samples +15)/16 * 4;
+    int deblk_h = (sps->pic_height_in_luma_samples+15)/16 * 4;
+#else
     int deblk_w = (sps->pic_width_in_luma_samples +3)/4;
     int deblk_h = (sps->pic_height_in_luma_samples+3)/4;
+#endif
 
     mem_alloc_success &= deblk_info.alloc(deblk_w, deblk_h, 2);
 

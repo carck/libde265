@@ -60,11 +60,31 @@ extern "C" {
 #define LIBDE265_DEPRECATED
 #endif
 
+/*
 #if defined(_MSC_VER)
 #define LIBDE265_INLINE __inline
 #else
 #define LIBDE265_INLINE inline
 #endif
+*/
+
+#if defined(__GNUC__)
+#define LIBDE265_INLINE __attribute__((always_inline)) inline
+#elif defined(_MSC_VER)
+#define LIBDE265_INLINE __forceinline
+#else
+#define LIBDE265_INLINE inline
+#endif
+
+#ifdef __GNUC__
+#define LIBDE265_RESTRICT __restrict__
+#elif defined(_MSC_VER)
+#define LIBDE265_RESTRICT __restrict
+#else
+#define LIBDE265_RESTRICT
+#endif
+
+
 
 /* === version numbers === */
 
@@ -135,7 +155,8 @@ typedef enum {
   DE265_NON_EXISTING_LT_REFERENCE_CANDIDATE_IN_SLICE_HEADER=1023,
   DE265_WARNING_CANNOT_APPLY_SAO_OUT_OF_MEMORY=1024,
   DE265_WARNING_SPS_MISSING_CANNOT_DECODE_SEI=1025,
-  DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA=1026
+  DE265_WARNING_COLLOCATED_MOTION_VECTOR_OUTSIDE_IMAGE_AREA=1026,
+  DE265_WARNING_PCM_BITDEPTH_TOO_LARGE=1027
 } de265_error;
 
 LIBDE265_API const char* de265_get_error_text(de265_error err);

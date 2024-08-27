@@ -295,67 +295,72 @@ void derive_boundaryStrength(de265_image* img, bool vertical, int yStart,int yEn
             slice_segment_header* shdrP = img->get_SliceHeader(xDiOpp,yDiOpp);
             slice_segment_header* shdrQ = img->get_SliceHeader(xDi   ,yDi);
 
-            int refPicP0 = mviP.predFlag[0] ? shdrP->RefPicList[0][ mviP.refIdx[0] ] : -1;
-            int refPicP1 = mviP.predFlag[1] ? shdrP->RefPicList[1][ mviP.refIdx[1] ] : -1;
-            int refPicQ0 = mviQ.predFlag[0] ? shdrQ->RefPicList[0][ mviQ.refIdx[0] ] : -1;
-            int refPicQ1 = mviQ.predFlag[1] ? shdrQ->RefPicList[1][ mviQ.refIdx[1] ] : -1;
+	    if (shdrP && shdrQ) {
+	      int refPicP0 = mviP.predFlag[0] ? shdrP->RefPicList[0][ mviP.refIdx[0] ] : -1;
+	      int refPicP1 = mviP.predFlag[1] ? shdrP->RefPicList[1][ mviP.refIdx[1] ] : -1;
+	      int refPicQ0 = mviQ.predFlag[0] ? shdrQ->RefPicList[0][ mviQ.refIdx[0] ] : -1;
+	      int refPicQ1 = mviQ.predFlag[1] ? shdrQ->RefPicList[1][ mviQ.refIdx[1] ] : -1;
 
-            bool samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1) ||
-                             (refPicP0==refPicQ1 && refPicP1==refPicQ0));
+	      bool samePics = ((refPicP0==refPicQ0 && refPicP1==refPicQ1) ||
+			       (refPicP0==refPicQ1 && refPicP1==refPicQ0));
 
-            if (!samePics) {
-              bS = 1;
-            }
-            else {
-              MotionVector mvP0 = mviP.mv[0]; if (!mviP.predFlag[0]) { mvP0.x=mvP0.y=0; }
-              MotionVector mvP1 = mviP.mv[1]; if (!mviP.predFlag[1]) { mvP1.x=mvP1.y=0; }
-              MotionVector mvQ0 = mviQ.mv[0]; if (!mviQ.predFlag[0]) { mvQ0.x=mvQ0.y=0; }
-              MotionVector mvQ1 = mviQ.mv[1]; if (!mviQ.predFlag[1]) { mvQ1.x=mvQ1.y=0; }
+	      if (!samePics) {
+		bS = 1;
+	      }
+	      else {
+		MotionVector mvP0 = mviP.mv[0]; if (!mviP.predFlag[0]) { mvP0.x=mvP0.y=0; }
+		MotionVector mvP1 = mviP.mv[1]; if (!mviP.predFlag[1]) { mvP1.x=mvP1.y=0; }
+		MotionVector mvQ0 = mviQ.mv[0]; if (!mviQ.predFlag[0]) { mvQ0.x=mvQ0.y=0; }
+		MotionVector mvQ1 = mviQ.mv[1]; if (!mviQ.predFlag[1]) { mvQ1.x=mvQ1.y=0; }
 
-              int numMV_P = mviP.predFlag[0] + mviP.predFlag[1];
-              int numMV_Q = mviQ.predFlag[0] + mviQ.predFlag[1];
+		int numMV_P = mviP.predFlag[0] + mviP.predFlag[1];
+		int numMV_Q = mviQ.predFlag[0] + mviQ.predFlag[1];
 
-              if (numMV_P!=numMV_Q) {
-                img->decctx->add_warning(DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ, false);
-                img->integrity = INTEGRITY_DECODING_ERRORS;
-              }
+		if (numMV_P!=numMV_Q) {
+		  img->decctx->add_warning(DE265_WARNING_NUMMVP_NOT_EQUAL_TO_NUMMVQ, false);
+		  img->integrity = INTEGRITY_DECODING_ERRORS;
+		}
 
-              // two different reference pictures or only one reference picture
-              if (refPicP0 != refPicP1) {
+		// two different reference pictures or only one reference picture
+		if (refPicP0 != refPicP1) {
 
-                if (refPicP0 == refPicQ0) {
-                  if (abs_value(mvP0.x-mvQ0.x) >= 4 ||
-                      abs_value(mvP0.y-mvQ0.y) >= 4 ||
-                      abs_value(mvP1.x-mvQ1.x) >= 4 ||
-                      abs_value(mvP1.y-mvQ1.y) >= 4) {
-                    bS = 1;
-                  }
-                }
-                else {
-                  if (abs_value(mvP0.x-mvQ1.x) >= 4 ||
-                      abs_value(mvP0.y-mvQ1.y) >= 4 ||
-                      abs_value(mvP1.x-mvQ0.x) >= 4 ||
-                      abs_value(mvP1.y-mvQ0.y) >= 4) {
-                    bS = 1;
-                  }
-                }
-              }
-              else {
-                assert(refPicQ0==refPicQ1);
+		  if (refPicP0 == refPicQ0) {
+		    if (abs_value(mvP0.x-mvQ0.x) >= 4 ||
+			abs_value(mvP0.y-mvQ0.y) >= 4 ||
+			abs_value(mvP1.x-mvQ1.x) >= 4 ||
+			abs_value(mvP1.y-mvQ1.y) >= 4) {
+		      bS = 1;
+		    }
+		  }
+		  else {
+		    if (abs_value(mvP0.x-mvQ1.x) >= 4 ||
+			abs_value(mvP0.y-mvQ1.y) >= 4 ||
+			abs_value(mvP1.x-mvQ0.x) >= 4 ||
+			abs_value(mvP1.y-mvQ0.y) >= 4) {
+		      bS = 1;
+		    }
+		  }
+		}
+		else {
+		  assert(refPicQ0==refPicQ1);
 
-                if ((abs_value(mvP0.x-mvQ0.x) >= 4 ||
-                     abs_value(mvP0.y-mvQ0.y) >= 4 ||
-                     abs_value(mvP1.x-mvQ1.x) >= 4 ||
-                     abs_value(mvP1.y-mvQ1.y) >= 4)
-                    &&
-                    (abs_value(mvP0.x-mvQ1.x) >= 4 ||
-                     abs_value(mvP0.y-mvQ1.y) >= 4 ||
-                     abs_value(mvP1.x-mvQ0.x) >= 4 ||
-                     abs_value(mvP1.y-mvQ0.y) >= 4)) {
-                  bS = 1;
-                }
-              }
-            }
+		  if ((abs_value(mvP0.x-mvQ0.x) >= 4 ||
+		       abs_value(mvP0.y-mvQ0.y) >= 4 ||
+		       abs_value(mvP1.x-mvQ1.x) >= 4 ||
+		       abs_value(mvP1.y-mvQ1.y) >= 4)
+		      &&
+		      (abs_value(mvP0.x-mvQ1.x) >= 4 ||
+		       abs_value(mvP0.y-mvQ1.y) >= 4 ||
+		       abs_value(mvP1.x-mvQ0.x) >= 4 ||
+		       abs_value(mvP1.y-mvQ0.y) >= 4)) {
+		    bS = 1;
+		  }
+		}
+	      }
+	    }
+	    else {
+	      bS = 0; // if shdrP==NULL or shdrQ==NULL
+	    }
 
             /*
               printf("unimplemented deblocking code for CU at %d;%d\n",xDi,yDi);
@@ -402,7 +407,7 @@ static uint8_t table_8_23_tc[54] = {
 
 // 8.7.2.4
 template <class pixel_t>
-void edge_filtering_luma_internal(de265_image* img, bool vertical,
+void edge_filtering_luma_internal_org(de265_image* img, bool vertical,
                                   int yStart,int yEnd, int xStart,int xEnd)
 {
   //printf("luma %d-%d %d-%d\n",xStart,xEnd,yStart,yEnd);
@@ -699,6 +704,577 @@ void edge_filtering_luma_internal(de265_image* img, bool vertical,
 }
 
 
+// 8.7.2.4
+template <class pixel_t>
+void edge_filtering_luma_internal(de265_image* img, bool vertical,
+                                  int yStart,int yEnd, int xStart,int xEnd){
+  const seq_parameter_set& sps = img->get_sps();
+  const pic_parameter_set& pps = img->get_pps();
+  const int stride = img->get_image_stride(0);
+  int xIncr = 2;
+  int yIncr = 2;
+  int tc[2];
+  uint8_t no_p[2] = { 0 };
+  uint8_t no_q[2] = { 0 };
+  int bitDepth_Y = sps.BitDepth_Y;
+  xEnd = libde265_min(xEnd,img->get_deblk_width());
+  yEnd = libde265_min(yEnd,img->get_deblk_height());
+
+  int pcmf = (sps.pcm_enabled_flag && sps.pcm_loop_filter_disable_flag) || pps.transquant_bypass_enable_flag;
+
+  //if(vertical)
+  {
+    for (int y=yStart;y<yEnd;y+=yIncr){
+      for (int x=xStart;x<xEnd;x+=xIncr){
+        int xDi = x<<2; // *4 -> pixel resolution
+        int yDi = y<<2; // *4 -> pixel resolution
+        int bs0 = img->get_deblk_bS(xDi,yDi);
+        int bs1 = vertical ? img->get_deblk_bS(xDi,yDi+4) : img->get_deblk_bS(xDi+4,yDi);
+
+        //std::cout << y << " " << x << std::endl;
+        
+        if(bs0 || bs1){
+          int QP_Q = img->get_QPY(xDi,yDi);
+          int QP_P = vertical ? img->get_QPY(xDi-1,yDi) : img->get_QPY(xDi,yDi-1);
+          int qP_L = (QP_Q+QP_P+1)>>1;
+          logtrace(LogDeblock,"QP: %d & %d -> %d\n",QP_Q,QP_P,qP_L);
+          int sliceIndexQ00 = img->get_SliceHeaderIndex(xDi,yDi);
+          int beta_offset = img->slices[sliceIndexQ00]->slice_beta_offset;
+          int tc_offset   = img->slices[sliceIndexQ00]->slice_tc_offset;
+          int Q_beta = Clip3(0,51, qP_L + beta_offset);
+          int betaPrime = table_8_23_beta[Q_beta];
+          int beta = betaPrime * (1<<(bitDepth_Y - 8));
+          int Q_tc0 = Clip3(0,53, qP_L + 2*(bs0-1) + tc_offset);
+          int tcPrime0 = table_8_23_tc[Q_tc0];
+          tc[0] = bs0 ? tcPrime0 * (1<<(bitDepth_Y - 8)) : 0;
+          int Q_tc1 = Clip3(0,53, qP_L + 2*(bs1-1) + tc_offset);
+          int tcPrime1 = table_8_23_tc[Q_tc1];
+          tc[1] = bs1 ? tcPrime1 * (1<<(bitDepth_Y - 8)) : 0;
+          pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(0, xDi,yDi);
+
+          if(pcmf){
+            no_p[0] = no_q[0] = no_p[1] = no_q[1] = true;
+            if (vertical) {
+              if (img->get_pcm_flag(xDi-1,yDi)) no_p[0]=false;
+              if (img->get_cu_transquant_bypass(xDi-1,yDi)) no_p[0]=false;
+              if (img->get_pcm_flag(xDi,yDi)) no_q[0]=false;
+              if (img->get_cu_transquant_bypass(xDi,yDi)) no_q[0]=false;
+
+              if (img->get_pcm_flag(xDi-1,yDi+4)) no_p[1]=false;
+              if (img->get_cu_transquant_bypass(xDi-1,yDi+4)) no_p[1]=false;
+              if (img->get_pcm_flag(xDi,yDi+4)) no_q[1]=false;
+              if (img->get_cu_transquant_bypass(xDi,yDi+4)) no_q[1]=false;
+            }
+            else {
+              if (img->get_pcm_flag(xDi,yDi-1)) no_p[0]=false;
+              if (img->get_cu_transquant_bypass(xDi,yDi-1)) no_p[0]=false;
+              if (img->get_pcm_flag(xDi,yDi))  no_q[0]=false;
+              if (img->get_cu_transquant_bypass(xDi,yDi))  no_q[0]=false;
+
+              if (img->get_pcm_flag(xDi+4,yDi-1)) no_p[1]=false;
+              if (img->get_cu_transquant_bypass(xDi+4,yDi-1)) no_p[1]=false;
+              if (img->get_pcm_flag(xDi+4,yDi))  no_q[1]=false;
+              if (img->get_cu_transquant_bypass(xDi+4,yDi))  no_q[1]=false;
+            } 
+            if(no_p[0] && no_p[1] && no_q[0] && no_q[1])
+              img->decctx->acceleration.loop_filter_luma<pixel_t>(ptr, vertical, stride, beta, tc, no_p, no_q, bitDepth_Y);
+            else
+              img->decctx->acceleration.loop_filter_luma_c<pixel_t>(ptr, vertical, stride, beta, tc, no_p, no_q, bitDepth_Y);
+          }
+          else{
+            //ptr = vertical ? ptr - 4 : ptr-4*stride;
+            img->decctx->acceleration.loop_filter_luma<pixel_t>(ptr, vertical, stride, beta, tc, no_p, no_q, bitDepth_Y);
+          }
+        }
+      }
+    }
+  }
+}
+
+// 8.7.2.4
+template <class pixel_t>
+void edge_filtering_luma_internal_old(de265_image* img, bool vertical,
+                                  int yStart,int yEnd, int xStart,int xEnd)
+{
+  //printf("luma %d-%d %d-%d\n",xStart,xEnd,yStart,yEnd);
+
+  const seq_parameter_set& sps = img->get_sps();
+
+  int xIncr = 2;
+  int yIncr = 2;
+
+  const int stride = img->get_image_stride(0);
+
+  int bitDepth_Y = sps.BitDepth_Y;
+
+  xEnd = libde265_min(xEnd,img->get_deblk_width());
+  yEnd = libde265_min(yEnd,img->get_deblk_height());
+
+  for (int y=yStart;y<yEnd;y+=yIncr)
+    for (int x=xStart;x<xEnd;x+=xIncr) {
+      // x;y in deblocking units (4x4 pixels)
+
+      int xDi = x<<2; // *4 -> pixel resolution
+      int yDi = y<<2; // *4 -> pixel resolution
+      int bS = img->get_deblk_bS(xDi,yDi);
+
+      //printf("x,y:%d,%d  xDi,yDi:%d,%d\n",x,y,xDi,yDi);
+
+      logtrace(LogDeblock,"deblock POC=%d %c --- x:%d y:%d bS:%d---\n",
+               img->PicOrderCntVal,vertical ? 'V':'H',xDi,yDi,bS);
+
+#if 0
+      {
+        uint8_t* ptr = img->y + stride*yDi + xDi;
+
+        for (int dy=-4;dy<4;dy++) {
+          for (int dx=-4;dx<4;dx++) {
+            printf("%02x ", ptr[dy*stride + dx]);
+            if (dx==-1) printf("| ");
+          }
+          printf("\n");
+          if (dy==-1) printf("-------------------------\n");
+        }
+      }
+#endif
+
+#if 0
+      if (!vertical)
+        {
+          uint8_t* ptr = img->y + stride*yDi + xDi;
+
+          for (int dy=-4;dy<4;dy++) {
+            for (int dx=0;dx<4;dx++) {
+              printf("%02x ", ptr[dy*stride + dx]);
+              if (dx==-1) printf("| ");
+            }
+            printf("\n");
+            if (dy==-1) printf("-------------------------\n");
+          }
+        }
+#endif
+
+      if (bS>0) {
+
+        // 8.7.2.4.3
+
+        pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(0, xDi,yDi);
+
+#ifdef HAVE_ARM
+        pixel_t q[8][4], p[8][4];
+        for (int k=0;k<8;k++)
+          for (int i=0;i<4;i++)
+            {
+              if (vertical) {
+                q[k][i] = ptr[ i  +k*stride];
+                p[k][i] = ptr[-i-1+k*stride];
+              }
+              else {
+                q[k][i] = ptr[k + i   *stride];
+                p[k][i] = ptr[k -(i+1)*stride];
+              }
+            }
+#else
+        pixel_t q[4][4], p[4][4];
+        for (int k=0;k<4;k++)
+          for (int i=0;i<4;i++)
+            {
+              if (vertical) {
+                q[k][i] = ptr[ i  +k*stride];
+                p[k][i] = ptr[-i-1+k*stride];
+              }
+              else {
+                q[k][i] = ptr[k + i   *stride];
+                p[k][i] = ptr[k -(i+1)*stride];
+              }
+            }
+#endif
+
+#if 0
+        for (int k=0;k<4;k++)
+          {
+            for (int i=0;i<4;i++)
+              {
+                printf("%02x ", p[k][3-i]);
+              }
+
+            printf("| ");
+
+            for (int i=0;i<4;i++)
+              {
+                printf("%02x ", q[k][i]);
+              }
+            printf("\n");
+          }
+#endif
+
+
+        int QP_Q = img->get_QPY(xDi,yDi);
+        int QP_P = (vertical ?
+                    img->get_QPY(xDi-1,yDi) :
+                    img->get_QPY(xDi,yDi-1) );
+        int qP_L = (QP_Q+QP_P+1)>>1;
+
+        logtrace(LogDeblock,"QP: %d & %d -> %d\n",QP_Q,QP_P,qP_L);
+
+        int sliceIndexQ00 = img->get_SliceHeaderIndex(xDi,yDi);
+        int beta_offset = img->slices[sliceIndexQ00]->slice_beta_offset;
+        int tc_offset   = img->slices[sliceIndexQ00]->slice_tc_offset;
+
+        int Q_beta = Clip3(0,51, qP_L + beta_offset);
+        int betaPrime = table_8_23_beta[Q_beta];
+        int beta = betaPrime * (1<<(bitDepth_Y - 8));
+
+        int Q_tc = Clip3(0,53, qP_L + 2*(bS-1) + tc_offset);
+        int tcPrime = table_8_23_tc[Q_tc];
+        int tc = tcPrime * (1<<(bitDepth_Y - 8));
+
+        // if(!vertical)
+        // {
+        //   int tc_array[2] = {tc, tc};
+        //   img->decctx->acceleration.h_loop_filter_luma<pixel_t>(ptr-4*stride, stride, beta, tc_array, NULL, NULL);
+        // }
+
+        logtrace(LogDeblock,"beta: %d (%d)  tc: %d (%d)\n",beta,beta_offset, tc,tc_offset);
+
+        int dE=0, dEp=0, dEq=0;
+        int dE_2=0, dEp_2=0, dEq_2=0;
+
+        if (vertical || !vertical) {
+          int dp0 = abs_value(p[0][2] - 2*p[0][1] + p[0][0]);
+          int dp3 = abs_value(p[3][2] - 2*p[3][1] + p[3][0]);
+          int dq0 = abs_value(q[0][2] - 2*q[0][1] + q[0][0]);
+          int dq3 = abs_value(q[3][2] - 2*q[3][1] + q[3][0]);
+
+          int dpq0 = dp0 + dq0;
+          int dpq3 = dp3 + dq3;
+
+          int dp = dp0 + dp3;
+          int dq = dq0 + dq3;
+          int d  = dpq0+ dpq3;
+
+          if (d<beta) {
+            //int dpq = 2*dpq0;
+            bool dSam0 = (2*dpq0 < (beta>>2) &&
+                          abs_value(p[0][3]-p[0][0])+abs_value(q[0][0]-q[0][3]) < (beta>>3) &&
+                          abs_value(p[0][0]-q[0][0]) < ((5*tc+1)>>1));
+
+            bool dSam3 = (2*dpq3 < (beta>>2) &&
+                          abs_value(p[3][3]-p[3][0])+abs_value(q[3][0]-q[3][3]) < (beta>>3) &&
+                          abs_value(p[3][0]-q[3][0]) < ((5*tc+1)>>1));
+
+            if (dSam0 && dSam3) {
+              dE=2;
+            }
+            else {
+              dE=1;
+            }
+
+            if (dp < ((beta + (beta>>1))>>3)) { dEp=1; }
+            if (dq < ((beta + (beta>>1))>>3)) { dEq=1; }
+
+            logtrace(LogDeblock,"dE:%d dEp:%d dEq:%d\n",dE,dEp,dEq);
+          }
+#ifdef HAVE_ARM
+          int dp0_2 = abs_value(p[4][2] - 2*p[4][1] + p[4][0]);
+          int dp3_2 = abs_value(p[7][2] - 2*p[7][1] + p[7][0]);
+          int dq0_2 = abs_value(q[4][2] - 2*q[4][1] + q[4][0]);
+          int dq3_2 = abs_value(q[7][2] - 2*q[7][1] + q[7][0]);
+
+          int dpq0_2 = dp0_2 + dq0_2;
+          int dpq3_2 = dp3_2 + dq3_2;
+
+          int dp_2 = dp0_2 + dp3_2;
+          int dq_2 = dq0_2 + dq3_2;
+          int d_2  = dpq0_2+ dpq3_2;
+
+          if (d_2<beta) {
+            //int dpq = 2*dpq0;
+            bool dSam0 = (2*dpq0_2 < (beta>>2) &&
+                          abs_value(p[4][3]-p[4][0])+abs_value(q[4][0]-q[4][3]) < (beta>>3) &&
+                          abs_value(p[4][0]-q[4][0]) < ((5*tc+1)>>1));
+
+            bool dSam3 = (2*dpq3_2 < (beta>>2) &&
+                          abs_value(p[7][3]-p[7][0])+abs_value(q[7][0]-q[7][3]) < (beta>>3) &&
+                          abs_value(p[7][0]-q[7][0]) < ((5*tc+1)>>1));
+
+            if (dSam0 && dSam3) {
+              dE_2=2;
+            }
+            else {
+              dE_2=1;
+            }
+
+            if (dp_2 < ((beta + (beta>>1))>>3)) { dEp_2=1; }
+            if (dq_2 < ((beta + (beta>>1))>>3)) { dEq_2=1; }
+
+            logtrace(LogDeblock,"dE:%d dEp:%d dEq:%d\n",dE_2,dEp_2,dEq_2);
+          }
+#endif
+        }
+        else {
+          // TODO
+          assert(0);
+        }
+
+
+        // 8.7.2.4.4
+
+        if (dE != 0) {
+          bool filterP = true;
+          bool filterQ = true;
+
+          if (vertical) {
+            if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi-1,yDi)) filterP=false;
+            if (img->get_cu_transquant_bypass(xDi-1,yDi)) filterP=false;
+
+            if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi)) filterQ=false;
+            if (img->get_cu_transquant_bypass(xDi,yDi)) filterQ=false;
+          }
+          else {
+            if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi-1)) filterP=false;
+            if (img->get_cu_transquant_bypass(xDi,yDi-1)) filterP=false;
+
+            if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi)) filterQ=false;
+            if (img->get_cu_transquant_bypass(xDi,yDi)) filterQ=false;
+          }
+
+          for (int k=0;k<4;k++) {
+            //int nDp,nDq;
+
+            logtrace(LogDeblock,"line:%d\n",k);
+
+            const pixel_t p0 = p[k][0];
+            const pixel_t p1 = p[k][1];
+            const pixel_t p2 = p[k][2];
+            const pixel_t p3 = p[k][3];
+            const pixel_t q0 = q[k][0];
+            const pixel_t q1 = q[k][1];
+            const pixel_t q2 = q[k][2];
+            const pixel_t q3 = q[k][3];
+
+            if (dE==2) {
+              // strong filtering
+
+              //nDp=nDq=3;
+
+              pixel_t pnew[3],qnew[3];
+              pnew[0] = Clip3(p0-2*tc,p0+2*tc, (p2 + 2*p1 + 2*p0 + 2*q0 + q1 +4)>>3);
+              pnew[1] = Clip3(p1-2*tc,p1+2*tc, (p2 + p1 + p0 + q0+2)>>2);
+              pnew[2] = Clip3(p2-2*tc,p2+2*tc, (2*p3 + 3*p2 + p1 + p0 + q0 + 4)>>3);
+              qnew[0] = Clip3(q0-2*tc,q0+2*tc, (p1+2*p0+2*q0+2*q1+q2+4)>>3);
+              qnew[1] = Clip3(q1-2*tc,q1+2*tc, (p0+q0+q1+q2+2)>>2);
+              qnew[2] = Clip3(q2-2*tc,q2+2*tc, (p0+q0+q1+3*q2+2*q3+4)>>3);
+
+              logtrace(LogDeblock,"strong filtering\n");
+
+              if (vertical) {
+                for (int i=0;i<3;i++) {
+                  if (filterP) { ptr[-i-1+k*stride] = pnew[i]; }
+                  if (filterQ) { ptr[ i + k*stride] = qnew[i]; }
+                }
+
+                // ptr[-1+k*stride] = ptr[ 0+k*stride] = 200;
+              }
+              else {
+                for (int i=0;i<3;i++) {
+                  if (filterP) { ptr[ k -(i+1)*stride] = pnew[i]; }
+                  if (filterQ) { ptr[ k + i   *stride] = qnew[i]; }
+                }
+              }
+            }
+            else {
+              // weak filtering
+
+              //nDp=nDq=0;
+
+              int delta = (9*(q0-p0) - 3*(q1-p1) + 8)>>4;
+              logtrace(LogDeblock,"delta=%d, tc=%d\n",delta,tc);
+
+              if (abs_value(delta) < tc*10) {
+
+                delta = Clip3(-tc,tc,delta);
+                logtrace(LogDeblock," deblk + %d;%d [%02x->%02x]  - %d;%d [%02x->%02x] delta:%d\n",
+                         vertical ? xDi-1 : xDi+k,
+                         vertical ? yDi+k : yDi-1, p0,Clip_BitDepth(p0+delta, bitDepth_Y),
+                         vertical ? xDi   : xDi+k,
+                         vertical ? yDi+k : yDi,   q0,Clip_BitDepth(q0-delta, bitDepth_Y),
+                         delta);
+
+                if (vertical) {
+                  if (filterP) { ptr[-0-1+k*stride] = Clip_BitDepth(p0+delta, bitDepth_Y); }
+                  if (filterQ) { ptr[ 0  +k*stride] = Clip_BitDepth(q0-delta, bitDepth_Y); }
+                }
+                else {
+                  if (filterP) { ptr[ k -1*stride] = Clip_BitDepth(p0+delta, bitDepth_Y); }
+                  if (filterQ) { ptr[ k +0*stride] = Clip_BitDepth(q0-delta, bitDepth_Y); }
+                }
+
+                //ptr[ 0+k*stride] = 200;
+
+                if (dEp==1 && filterP) {
+                  int delta_p = Clip3(-(tc>>1), tc>>1, (((p2+p0+1)>>1)-p1+delta)>>1);
+
+                  logtrace(LogDeblock," deblk dEp %d;%d delta:%d\n",
+                           vertical ? xDi-2 : xDi+k,
+                           vertical ? yDi+k : yDi-2,
+                           delta_p);
+
+                  if (vertical) { ptr[-1-1+k*stride] = Clip_BitDepth(p1+delta_p, bitDepth_Y); }
+                  else          { ptr[ k  -2*stride] = Clip_BitDepth(p1+delta_p, bitDepth_Y); }
+                }
+
+                if (dEq==1 && filterQ) {
+                  int delta_q = Clip3(-(tc>>1), tc>>1, (((q2+q0+1)>>1)-q1-delta)>>1);
+
+                  logtrace(LogDeblock," delkb dEq %d;%d delta:%d\n",
+                           vertical ? xDi+1 : xDi+k,
+                           vertical ? yDi+k : yDi+1,
+                           delta_q);
+
+                  if (vertical) { ptr[ 1  +k*stride] = Clip_BitDepth(q1+delta_q, bitDepth_Y); }
+                  else          { ptr[ k  +1*stride] = Clip_BitDepth(q1+delta_q, bitDepth_Y); }
+                }
+
+                //nDp = dEp+1;
+                //nDq = dEq+1;
+
+                //logtrace(LogDeblock,"weak filtering (%d:%d)\n",nDp,nDq);
+              }
+            }
+          }
+        }
+#if HAVE_ARM
+        if (dE_2 != 0) {
+          bool filterP = true;
+          bool filterQ = true;
+
+          if (vertical) {
+            if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi-1,yDi)) filterP=false;
+            if (img->get_cu_transquant_bypass(xDi-1,yDi)) filterP=false;
+
+            if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi)) filterQ=false;
+            if (img->get_cu_transquant_bypass(xDi,yDi)) filterQ=false;
+          }
+          else {
+            if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi-1)) filterP=false;
+            if (img->get_cu_transquant_bypass(xDi,yDi-1)) filterP=false;
+
+            if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(xDi,yDi)) filterQ=false;
+            if (img->get_cu_transquant_bypass(xDi,yDi)) filterQ=false;
+          }
+
+          for (int k=4;k<8;k++) {
+            //int nDp,nDq;
+
+            logtrace(LogDeblock,"line:%d\n",k);
+
+            const pixel_t p0 = p[k][0];
+            const pixel_t p1 = p[k][1];
+            const pixel_t p2 = p[k][2];
+            const pixel_t p3 = p[k][3];
+            const pixel_t q0 = q[k][0];
+            const pixel_t q1 = q[k][1];
+            const pixel_t q2 = q[k][2];
+            const pixel_t q3 = q[k][3];
+
+            if (dE_2==2) {
+              // strong filtering
+
+              //nDp=nDq=3;
+
+              pixel_t pnew[3],qnew[3];
+              pnew[0] = Clip3(p0-2*tc,p0+2*tc, (p2 + 2*p1 + 2*p0 + 2*q0 + q1 +4)>>3);
+              pnew[1] = Clip3(p1-2*tc,p1+2*tc, (p2 + p1 + p0 + q0+2)>>2);
+              pnew[2] = Clip3(p2-2*tc,p2+2*tc, (2*p3 + 3*p2 + p1 + p0 + q0 + 4)>>3);
+              qnew[0] = Clip3(q0-2*tc,q0+2*tc, (p1+2*p0+2*q0+2*q1+q2+4)>>3);
+              qnew[1] = Clip3(q1-2*tc,q1+2*tc, (p0+q0+q1+q2+2)>>2);
+              qnew[2] = Clip3(q2-2*tc,q2+2*tc, (p0+q0+q1+3*q2+2*q3+4)>>3);
+
+              logtrace(LogDeblock,"strong filtering\n");
+
+              if (vertical) {
+                for (int i=0;i<3;i++) {
+                  if (filterP) { ptr[-i-1+k*stride] = pnew[i]; }
+                  if (filterQ) { ptr[ i + k*stride] = qnew[i]; }
+                }
+
+                // ptr[-1+k*stride] = ptr[ 0+k*stride] = 200;
+              }
+              else {
+                for (int i=0;i<3;i++) {
+                  if (filterP) { ptr[ k -(i+1)*stride] = pnew[i]; }
+                  if (filterQ) { ptr[ k + i   *stride] = qnew[i]; }
+                }
+              }
+            }
+            else {
+              // weak filtering
+
+              //nDp=nDq=0;
+
+              int delta = (9*(q0-p0) - 3*(q1-p1) + 8)>>4;
+              logtrace(LogDeblock,"delta=%d, tc=%d\n",delta,tc);
+
+              if (abs_value(delta) < tc*10) {
+
+                delta = Clip3(-tc,tc,delta);
+                logtrace(LogDeblock," deblk + %d;%d [%02x->%02x]  - %d;%d [%02x->%02x] delta:%d\n",
+                         vertical ? xDi-1 : xDi+k,
+                         vertical ? yDi+k : yDi-1, p0,Clip_BitDepth(p0+delta, bitDepth_Y),
+                         vertical ? xDi   : xDi+k,
+                         vertical ? yDi+k : yDi,   q0,Clip_BitDepth(q0-delta, bitDepth_Y),
+                         delta);
+
+                if (vertical) {
+                  if (filterP) { ptr[-0-1+k*stride] = Clip_BitDepth(p0+delta, bitDepth_Y); }
+                  if (filterQ) { ptr[ 0  +k*stride] = Clip_BitDepth(q0-delta, bitDepth_Y); }
+                }
+                else {
+                  if (filterP) { ptr[ k -1*stride] = Clip_BitDepth(p0+delta, bitDepth_Y); }
+                  if (filterQ) { ptr[ k +0*stride] = Clip_BitDepth(q0-delta, bitDepth_Y); }
+                }
+
+                //ptr[ 0+k*stride] = 200;
+
+                if (dEp_2==1 && filterP) {
+                  int delta_p = Clip3(-(tc>>1), tc>>1, (((p2+p0+1)>>1)-p1+delta)>>1);
+
+                  logtrace(LogDeblock," deblk dEp %d;%d delta:%d\n",
+                           vertical ? xDi-2 : xDi+k,
+                           vertical ? yDi+k : yDi-2,
+                           delta_p);
+
+                  if (vertical) { ptr[-1-1+k*stride] = Clip_BitDepth(p1+delta_p, bitDepth_Y); }
+                  else          { ptr[ k  -2*stride] = Clip_BitDepth(p1+delta_p, bitDepth_Y); }
+                }
+
+                if (dEq_2==1 && filterQ) {
+                  int delta_q = Clip3(-(tc>>1), tc>>1, (((q2+q0+1)>>1)-q1-delta)>>1);
+
+                  logtrace(LogDeblock," delkb dEq %d;%d delta:%d\n",
+                           vertical ? xDi+1 : xDi+k,
+                           vertical ? yDi+k : yDi+1,
+                           delta_q);
+
+                  if (vertical) { ptr[ 1  +k*stride] = Clip_BitDepth(q1+delta_q, bitDepth_Y); }
+                  else          { ptr[ k  +1*stride] = Clip_BitDepth(q1+delta_q, bitDepth_Y); }
+                }
+
+                //nDp = dEp+1;
+                //nDq = dEq+1;
+
+                //logtrace(LogDeblock,"weak filtering (%d:%d)\n",nDp,nDq);
+              }
+            }
+          }
+        }
+#endif
+      }
+    }
+}
+
+
 void edge_filtering_luma(de265_image* img, bool vertical,
                          int yStart,int yEnd, int xStart,int xEnd)
 {
@@ -727,7 +1303,7 @@ void edge_filtering_luma_CTB(de265_image* img, bool vertical, int xCtb,int yCtb)
 /** ?Start and ?End values in 4-luma pixels resolution.
  */
 template <class pixel_t>
-void edge_filtering_chroma_internal(de265_image* img, bool vertical,
+void edge_filtering_chroma_internal_org(de265_image* img, bool vertical,
                                     int yStart,int yEnd,
                                     int xStart,int xEnd)
 {
@@ -844,7 +1420,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
 
 
             for (int k=0;k<4;k++) {
-              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
+              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])*4)+p[1][k]-q[1][k]+4)>>3)); // standard says <<2 in eq. (8-356), but the value can also be negative
               logtrace(LogDeblock,"delta=%d\n",delta);
               if (filterP) { ptr[-1+k*stride] = Clip_BitDepth(p[0][k]+delta, bitDepth_C); }
               if (filterQ) { ptr[ 0+k*stride] = Clip_BitDepth(q[0][k]-delta, bitDepth_C); }
@@ -860,7 +1436,7 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
             if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
 
             for (int k=0;k<4;k++) {
-              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])<<2)+p[1][k]-q[1][k]+4)>>3));
+              int delta = Clip3(-tc,tc, ((((q[0][k]-p[0][k])*4)+p[1][k]-q[1][k]+4)>>3)); // standard says <<2, but the value can also be negative
               if (filterP) { ptr[ k-1*stride] = Clip_BitDepth(p[0][k]+delta, bitDepth_C); }
               if (filterQ) { ptr[ k+0*stride] = Clip_BitDepth(q[0][k]-delta, bitDepth_C); }
             }
@@ -870,6 +1446,331 @@ void edge_filtering_chroma_internal(de265_image* img, bool vertical,
     }
 }
 
+#ifndef OPT_4
+template <class pixel_t>
+void edge_filtering_chroma_internal(de265_image* img, bool vertical,
+                                    int yStart,int yEnd,
+                                    int xStart,int xEnd)
+{
+  const seq_parameter_set& sps = img->get_sps();
+  const pic_parameter_set& pps = img->get_pps();
+
+  const int SubWidthC  = sps.SubWidthC;
+  const int SubHeightC = sps.SubHeightC;
+
+  int xIncr = vertical ? 2 : 1;
+  int yIncr = vertical ? 1 : 2;
+
+  xIncr *= SubWidthC;
+  yIncr *= SubHeightC;
+
+  const int stride = img->get_image_stride(1);
+
+  xEnd = libde265_min(xEnd,img->get_deblk_width());
+  yEnd = libde265_min(yEnd,img->get_deblk_height());
+
+  int bitDepth_C = sps.BitDepth_C;
+
+  int pcmf = (sps.pcm_enabled_flag && sps.pcm_loop_filter_disable_flag) || pps.transquant_bypass_enable_flag;
+
+  bool filterP=true, filterQ=true;
+
+  for (int y=yStart;y<yEnd;y+=yIncr)
+    for (int x=xStart;x<xEnd;x+=xIncr) {
+      int xDi = x << (3-SubWidthC);
+      int yDi = y << (3-SubHeightC);
+
+      //printf("x,y:%d,%d  xDi,yDi:%d,%d\n",x,y,xDi,yDi);
+
+      int bS = img->get_deblk_bS(xDi*SubWidthC,yDi*SubHeightC);
+
+      if (bS>1) {
+        // 8.7.2.4.5
+
+        for (int cplane=0;cplane<2;cplane++) {
+          int cQpPicOffset = (cplane==0 ?
+                              img->get_pps().pic_cb_qp_offset :
+                              img->get_pps().pic_cr_qp_offset);
+
+          pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(cplane+1, xDi,yDi);
+
+          logtrace(LogDeblock,"-%s- %d %d\n",cplane==0 ? "Cb" : "Cr",xDi,yDi);
+
+          // std::cout << yDi << " " << xDi << std::endl;
+          // std::cout << "plane: " << cplane+1 << std::endl;
+          // std::cout << "vertical: " << vertical << std::endl;
+
+          // pixel_t* src = vertical ? ptr-2 : ptr-2*stride;
+          // std::cout << "org edge pixel " << std::endl;
+          // for (int j = 0; j < 4; j++)
+          // {
+          //   for (int i = 0; i < 4; i++)
+          //   {
+          //     std::cout << (int)src[j*stride + i] << " ";
+          //   }
+          //   std::cout << std::endl;
+          // }
+          // std::cout << std::endl;
+          
+
+#if 0
+          for (int k=0;k<4;k++)
+            {
+              for (int i=0;i<2;i++)
+                {
+                  printf("%02x ", p[1-i][k]);
+                }
+
+              printf("| ");
+
+              for (int i=0;i<2;i++)
+                {
+                  printf("%02x ", q[i][k]);
+                }
+              printf("\n");
+            }
+#endif
+
+          int QP_Q = img->get_QPY(SubWidthC*xDi,SubHeightC*yDi);
+          int QP_P = (vertical ?
+                      img->get_QPY(SubWidthC*xDi-1,SubHeightC*yDi) :
+                      img->get_QPY(SubWidthC*xDi,SubHeightC*yDi-1));
+          int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
+          int QP_C;
+          if (sps.ChromaArrayType == CHROMA_420) {
+            QP_C = table8_22(qP_i);
+          } else {
+            QP_C = libde265_min(qP_i, 51);
+          }
+
+
+          //printf("POC=%d\n",ctx->img->PicOrderCntVal);
+          logtrace(LogDeblock,"%d %d: ((%d+%d+1)>>1) + %d = qP_i=%d  (QP_C=%d)\n",
+                   SubWidthC*xDi,SubHeightC*yDi, QP_Q,QP_P,cQpPicOffset,qP_i,QP_C);
+
+          int sliceIndexQ00 = img->get_SliceHeaderIndex(SubWidthC*xDi,SubHeightC*yDi);
+          int tc_offset   = img->slices[sliceIndexQ00]->slice_tc_offset;
+
+          int Q = Clip3(0,53, QP_C + 2*(bS-1) + tc_offset);
+
+          int tcPrime = table_8_23_tc[Q];
+          int tc = tcPrime * (1<<(sps.BitDepth_C - 8));
+
+          logtrace(LogDeblock,"tc_offset=%d Q=%d tc'=%d tc=%d\n",tc_offset,Q,tcPrime,tc);
+          if(pcmf){
+            if (vertical) {
+              filterP = true;
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(SubWidthC*xDi-1,SubHeightC*yDi)) filterP=false;
+              if (img->get_cu_transquant_bypass(SubWidthC*xDi-1,SubHeightC*yDi)) filterP=false;
+
+              filterQ = true;
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
+              if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
+            }
+            else {
+              filterP = true;
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(SubWidthC*xDi,SubHeightC*yDi-1)) filterP=false;
+              if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi-1)) filterP=false;
+
+              filterQ = true;
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
+              if (img->get_cu_transquant_bypass(SubWidthC*xDi,SubHeightC*yDi)) filterQ=false;
+            }
+            if(filterP && filterQ){
+              img->decctx->acceleration.loop_filter_chroma<pixel_t>(ptr, vertical, stride, tc, filterP, filterQ, bitDepth_C);
+            }
+            else{
+              img->decctx->acceleration.loop_filter_chroma_c<pixel_t>(ptr, vertical, stride, tc, filterP, filterQ, bitDepth_C);
+            }
+          }
+          else{
+            img->decctx->acceleration.loop_filter_chroma<pixel_t>(ptr, vertical, stride, tc, filterP, filterQ, bitDepth_C);
+          }
+          // src = vertical ? ptr-2 : ptr-2*stride;
+          // std::cout << "filtered edge pixel " << std::endl;
+          // for (int j = 0; j < 4; j++)
+          // {
+          //   for (int i = 0; i < 4; i++)
+          //   {
+          //     std::cout << (int)src[j*stride + i] << " ";
+          //   }
+          //   std::cout << std::endl;
+          // }
+          // std::cout << std::endl;
+        }
+      }
+    }
+}
+
+#else
+
+template <class pixel_t>
+void edge_filtering_chroma_internal(de265_image* img, bool vertical,
+                                    int yStart,int yEnd,
+                                    int xStart,int xEnd)
+{
+  const seq_parameter_set& sps = img->get_sps();
+  const pic_parameter_set& pps = img->get_pps();
+
+  const int SubWidthC  = sps.SubWidthC;
+  const int SubHeightC = sps.SubHeightC;
+
+  int xIncr = 2;
+  int yIncr = 2;
+
+  int tc[2];
+  uint8_t no_p[2] = { true, true };
+  uint8_t no_q[2] = { true, true };
+
+  xIncr *= SubWidthC;
+  yIncr *= SubHeightC;
+
+  const int stride = img->get_image_stride(1);
+
+  xEnd = libde265_min(xEnd,img->get_deblk_width());
+  yEnd = libde265_min(yEnd,img->get_deblk_height());
+
+  int bitDepth_C = sps.BitDepth_C;
+
+  int pcmf = (sps.pcm_enabled_flag && sps.pcm_loop_filter_disable_flag) || pps.transquant_bypass_enable_flag;
+
+  for (int y=yStart;y<yEnd;y+=yIncr)
+    for (int x=xStart;x<xEnd;x+=xIncr) {
+      int xDi = x << (3-SubWidthC);
+      int yDi = y << (3-SubHeightC);
+
+      //printf("x,y:%d,%d  xDi,yDi:%d,%d\n",x,y,xDi,yDi);
+      int luma_x = xDi*SubWidthC;
+      int luma_y = yDi*SubHeightC;
+      int bS0 = img->get_deblk_bS(luma_x,luma_y);
+      int bS1 = vertical ? img->get_deblk_bS(luma_x, luma_y+4*SubHeightC) : img->get_deblk_bS(luma_x+4*SubWidthC,luma_y);
+
+      if (bS0==2 || bS1==2) {
+        // 8.7.2.4.5
+
+        for (int cplane=0;cplane<2;cplane++) {
+          int cQpPicOffset = (cplane==0 ? img->get_pps().pic_cb_qp_offset :img->get_pps().pic_cr_qp_offset);
+          pixel_t* ptr = img->get_image_plane_at_pos_NEW<pixel_t>(cplane+1, xDi,yDi);
+          logtrace(LogDeblock,"-%s- %d %d\n",cplane==0 ? "Cb" : "Cr",xDi,yDi);
+
+          // std::cout << yDi << " " << xDi << std::endl;
+          // std::cout << "plane: " << cplane+1 << std::endl;
+          // std::cout << "vertical: " << vertical << std::endl;
+
+          // pixel_t* src = vertical ? ptr-2 : ptr-2*stride;
+          // std::cout << "org edge pixel " << std::endl;
+          // for (int j = 0; j < 8; j++)
+          // {
+          //   for (int i = 0; i < 4; i++)
+          //   {
+          //     std::cout << (int)src[j*stride + i] << " ";
+          //   }
+          //   std::cout << std::endl;
+          // }
+          // std::cout << std::endl;
+          
+
+#if 0
+          for (int k=0;k<4;k++)
+            {
+              for (int i=0;i<2;i++)
+                {
+                  printf("%02x ", p[1-i][k]);
+                }
+
+              printf("| ");
+
+              for (int i=0;i<2;i++)
+                {
+                  printf("%02x ", q[i][k]);
+                }
+              printf("\n");
+            }
+#endif
+
+          int QP_Q = img->get_QPY(luma_x,luma_y);
+          int QP_P = (vertical ? img->get_QPY(luma_x-1,luma_y) : img->get_QPY(luma_x,luma_y-1));
+          int qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
+          int QP_C0;
+          if (sps.ChromaArrayType == CHROMA_420) {
+            QP_C0 = table8_22(qP_i);
+          } else {
+            QP_C0 = libde265_min(qP_i, 51);
+          }
+          QP_Q = vertical ? img->get_QPY(luma_x,luma_y + 4*SubHeightC) : img->get_QPY(luma_x+ 4*SubWidthC,luma_y );
+          QP_P = vertical ? img->get_QPY(luma_x-1,luma_y + 4*SubHeightC) : img->get_QPY(luma_x+ 4*SubWidthC,luma_y - 1);
+          qP_i = ((QP_Q+QP_P+1)>>1) + cQpPicOffset;
+          int QP_C1;
+          if (sps.ChromaArrayType == CHROMA_420) {
+            QP_C1 = table8_22(qP_i);
+          } else {
+            QP_C1 = libde265_min(qP_i, 51);
+          }
+          //printf("POC=%d\n",ctx->img->PicOrderCntVal);
+          logtrace(LogDeblock,"%d %d: ((%d+%d+1)>>1) + %d = qP_i=%d  (QP_C=%d)\n",
+                   luma_x,luma_y, QP_Q,QP_P,cQpPicOffset,qP_i,QP_C);
+          int sliceIndexQ00 = img->get_SliceHeaderIndex(luma_x,luma_y);
+          int tc_offset   = img->slices[sliceIndexQ00]->slice_tc_offset;
+
+          int Q0 = Clip3(0,53, QP_C0 + 2 + tc_offset);
+          int Q1 = Clip3(0,53, QP_C1 + 2 + tc_offset);
+          int tcPrime0 = table_8_23_tc[Q0];
+          int tcPrime1 = table_8_23_tc[Q1];
+
+          tc[0] = (bS0 ==2)? tcPrime0 * (1<<(sps.BitDepth_C - 8)) : 0;
+          tc[1] = (bS1 ==2)? tcPrime1 * (1<<(sps.BitDepth_C - 8)) : 0;
+
+          logtrace(LogDeblock,"tc_offset=%d Q=%d tc'=%d tc=%d\n",tc_offset,Q,tcPrime,tc);
+          if(pcmf){
+            no_p[0] = no_q[0] = no_p[1] = no_q[1] = true;
+            if (vertical) {
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x-1,luma_y)) no_p[0]=false;
+              if (img->get_cu_transquant_bypass(luma_x-1,luma_y)) no_p[0]=false;
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x,luma_y)) no_q[0]=false;
+              if (img->get_cu_transquant_bypass(luma_x,luma_y)) no_q[0]=false;
+
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x-1,luma_y + 4*SubHeightC)) no_p[1]=false;
+              if (img->get_cu_transquant_bypass(luma_x-1,luma_y+ 4*SubHeightC)) no_p[1]=false;
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x,luma_y+ 4*SubHeightC)) no_q[1]=false;
+              if (img->get_cu_transquant_bypass(luma_x,luma_y+ 4*SubHeightC)) no_q[1]=false; 
+            }
+            else {
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x,luma_y-1)) no_p[0]=false;
+              if (img->get_cu_transquant_bypass(luma_x,luma_y-1)) no_p[0]=false;
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x,luma_y)) no_q[0]=false;
+              if (img->get_cu_transquant_bypass(luma_x,luma_y)) no_q[0]=false;
+
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x+4*SubWidthC,luma_y-1)) no_p[1]=false;
+              if (img->get_cu_transquant_bypass(luma_x+4*SubWidthC,luma_y-1)) no_p[1]=false;
+              if (sps.pcm_loop_filter_disable_flag && img->get_pcm_flag(luma_x+4*SubWidthC,luma_y)) no_q[1]=false;
+              if (img->get_cu_transquant_bypass(luma_x+4*SubWidthC,luma_y)) no_q[1]=false;
+            }
+            if(no_p[0] && no_p[1] && no_q[0] && no_q[1]){
+              img->decctx->acceleration.loop_filter_chroma<pixel_t>(ptr, vertical, stride, tc, no_p, no_q, bitDepth_C);
+            }
+            else{
+              img->decctx->acceleration.loop_filter_chroma_c<pixel_t>(ptr, vertical, stride, tc, no_p, no_q, bitDepth_C);
+            }
+          }
+          else{
+            img->decctx->acceleration.loop_filter_chroma<pixel_t>(ptr, vertical, stride, tc, no_p, no_q, bitDepth_C);
+          }
+          // src = vertical ? ptr-2 : ptr-2*stride;
+          // std::cout << "filtered edge pixel " << std::endl;
+          // for (int j = 0; j < 8; j++)
+          // {
+          //   for (int i = 0; i < 4; i++)
+          //   {
+          //     std::cout << (int)src[j*stride + i] << " ";
+          //   }
+          //   std::cout << std::endl;
+          // }
+          // std::cout << std::endl;
+        }
+      }
+    }
+}
+#endif
 
 void edge_filtering_chroma(de265_image* img, bool vertical, int yStart,int yEnd,
                            int xStart,int xEnd)

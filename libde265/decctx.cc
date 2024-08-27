@@ -37,11 +37,11 @@
 #endif
 
 #ifdef HAVE_SSE4_1
-#include "x86/sse.h"
+#include "x86_new/x86.h"
 #endif
 
 #ifdef HAVE_ARM
-#include "arm/arm.h"
+#include "arm_new/arm.h"
 #endif
 
 #define SAVE_INTERMEDIATE_IMAGES 0
@@ -129,6 +129,17 @@ thread_context::thread_context()
   // compiler assumes that the pointer would be 16-byte aligned. However, this is not the
   // case when the structure has been dynamically allocated. In this case, the base can
   // also be at 8 byte offsets (at least with MingW,32 bit).
+
+// #if HAVE_AVX2
+//   int offset = ((uintptr_t)_coeffBuf) & 0x1f;
+
+//   if (offset == 0) {
+//     coeffBuf = _coeffBuf;  // correctly aligned already
+//   }
+//   else {
+//     coeffBuf = (int16_t *) (((uint8_t *)_coeffBuf) + (32-offset));
+//   }
+// #else
   int offset = ((uintptr_t)_coeffBuf) & 0xf;
 
   if (offset == 0) {
@@ -137,6 +148,7 @@ thread_context::thread_context()
   else {
     coeffBuf = (int16_t *) (((uint8_t *)_coeffBuf) + (16-offset));
   }
+//#endif
 
   memset(coeffBuf, 0, 32*32*sizeof(int16_t));
 }
@@ -562,6 +574,15 @@ de265_error decoder_context::read_sps_NAL(bitreader& reader)
 
   sps[ new_sps->seq_parameter_set_id ] = new_sps;
 
+  // Remove the all PPS that referenced the old SPS because parameters may have changed and we do not want to
+  // get the SPS and PPS parameters (e.g. image size) out of sync.
+  
+  for (auto& p : pps) {
+    if (p && p->seq_parameter_set_id == new_sps->seq_parameter_set_id) {
+      p = nullptr;
+    }
+  }
+
   return DE265_OK;
 }
 
@@ -617,7 +638,6 @@ de265_error decoder_context::read_eos_NAL(bitreader& reader)
 de265_error decoder_context::read_slice_NAL(bitreader& reader, NAL_unit* nal, nal_header& nal_hdr)
 {
   logdebug(LogHeaders,"---> read slice segment header\n");
-
 
   // --- read slice header ---
 
@@ -811,7 +831,7 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
   }
 
 
-  struct thread_context tctx;
+  thread_context tctx;
 
   tctx.shdr = sliceunit->shdr;
   tctx.img  = imgunit->img;
@@ -840,7 +860,11 @@ de265_error decoder_context::decode_slice_unit_sequential(image_unit* imgunit,
 
   sliceunit->nThreads=1;
 
+#ifdef OPT_CABAC
+  err=read_slice_segment_data(&tctx, sliceunit->reader.bytes_remaining);
+#else
   err=read_slice_segment_data(&tctx);
+#endif
 
   sliceunit->finished_threads.set_progress(1);
 

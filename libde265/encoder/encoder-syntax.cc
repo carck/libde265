@@ -587,7 +587,40 @@ static void encode_coeff_abs_level_remaining(encoder_context* ectx,
 }
 
 // ---------------------------------------------------------------------------
+#ifdef OPT_1
+void findLastSignificantCoeff(const uint8_t* sbScan_x, const uint8_t* sbScan_y, const uint8_t* cScan_x, const uint8_t* cScan_y,
+                              const int16_t* coeff, int log2TrafoSize,
+                              int* lastSignificantX, int* lastSignificantY,
+                              int* lastSb, int* lastPos)
+{
+  int nSb = 1<<((log2TrafoSize-2)<<1); // number of sub-blocks
 
+  // find last significant coefficient
+
+  for (int i=nSb ; i-->0 ;) {
+    int x0 = sbScan_x[i] << 2;
+    int y0 = sbScan_y[i] << 2;
+    for (int c=16 ; c-->0 ;) {
+      int x = x0 + cScan_x[c];
+      int y = y0 + cScan_y[c];
+
+      if (coeff[x+(y<<log2TrafoSize)]) {
+        *lastSignificantX = x;
+        *lastSignificantY = y;
+        *lastSb = i;
+        *lastPos= c;
+
+        logtrace(LogSlice,"last significant coeff at: %d;%d, Sb:%d Pos:%d\n", x,y,i,c);
+
+        return;
+      }
+    }
+  }
+
+  // all coefficients == 0 ? cannot be since cbf should be false in this case
+  assert(false);
+}
+#else
 void findLastSignificantCoeff(const position* sbScan, const position* cScan,
                               const int16_t* coeff, int log2TrafoSize,
                               int* lastSignificantX, int* lastSignificantY,
@@ -620,8 +653,25 @@ void findLastSignificantCoeff(const position* sbScan, const position* cScan,
   // all coefficients == 0 ? cannot be since cbf should be false in this case
   assert(false);
 }
+#endif
 
+#ifdef OPT_1
+bool subblock_has_nonzero_coefficient(const int16_t* coeff, int coeffStride,
+                                      const uint8_t sbPosx, const uint8_t sbPosy)
+{
+  int x0 = sbPosx << 2;
+  int y0 = sbPosy << 2;
 
+  coeff += x0 + y0*coeffStride;
+
+  for (int y=0;y<4;y++) {
+    if (coeff[0] || coeff[1] || coeff[2] || coeff[3]) { return true; }
+    coeff += coeffStride;
+  }
+
+  return false;
+}
+#else
 bool subblock_has_nonzero_coefficient(const int16_t* coeff, int coeffStride,
                                       const position& sbPos)
 {
@@ -637,6 +687,7 @@ bool subblock_has_nonzero_coefficient(const int16_t* coeff, int coeffStride,
 
   return false;
 }
+#endif
 
 /*
   Example 16x16:  prefix in [0;7]
@@ -724,7 +775,7 @@ void split_last_significant_position(int pos, int* prefix, int* suffix, int* nSu
 }
 
 
-extern uint8_t* ctxIdxLookup[4 /* 4-log2-32 */][2 /* !!cIdx */][2 /* !!scanIdx */][4 /* prevCsbf */];
+//extern const uint8_t ctxIdxLookup[4 /* 4-log2-32 */][2 /* !!cIdx */][2 /* !!scanIdx */][4 /* prevCsbf */][1024];
 
 /* These values are read from the image metadata:
    - intra prediction mode (x0;y0)
@@ -779,17 +830,30 @@ void encode_residual(encoder_context* ectx,
     scanIdx=0;
   }
 
-
+#ifdef OPT_1
+  const uint8_t* ScanOrderSub_x =  get_scan_order_x(log2TrafoSize-2, scanIdx); //scan_order_x[scanIdx][log2TrafoSize-2]; 
+  const uint8_t* ScanOrderSub_y =  scan_order_y[scanIdx][log2TrafoSize-2];
+  const uint8_t* ScanOrderPos_x = scan_order_x[scanIdx][2]; 
+  const uint8_t* ScanOrderPos_y = scan_order_y[scanIdx][2]; 
+#else
   const position* ScanOrderSub = get_scan_order(log2TrafoSize-2, scanIdx);
   const position* ScanOrderPos = get_scan_order(2, scanIdx);
+#endif
 
   int lastSignificantX, lastSignificantY;
   int lastScanPos;
   int lastSubBlock;
-  findLastSignificantCoeff(ScanOrderSub, ScanOrderPos,
+#ifdef OPT_1
+  findLastSignificantCoeff(ScanOrderSub_x, ScanOrderSub_y, ScanOrderPos_x, ScanOrderPos_y,
                            coeff, log2TrafoSize,
                            &lastSignificantX, &lastSignificantY,
                            &lastSubBlock, &lastScanPos);
+#else
+  findLastSignificantCoeff(ScanOrderSub, ScanOrderPos,
+                          coeff, log2TrafoSize,
+                          &lastSignificantX, &lastSignificantY,
+                          &lastSubBlock, &lastScanPos);
+#endif
 
   int codedSignificantX = lastSignificantX;
   int codedSignificantY = lastSignificantY;
@@ -849,7 +913,12 @@ void encode_residual(encoder_context* ectx,
   // n - coefficient index in subblock
 
   for (int i=lastSubBlock;i>=0;i--) {
+#ifdef OPT_1
+    const uint8_t Sx = ScanOrderSub_x[i];
+    const uint8_t Sy = ScanOrderSub_y[i];
+#else
     position S = ScanOrderSub[i];
+#endif
     int inferSbDcSigCoeffFlag=0;
 
     logtrace(LogSlice,"sub block scan idx: %d\n",i);
@@ -860,10 +929,17 @@ void encode_residual(encoder_context* ectx,
     int sub_block_is_coded = 0;
 
     if ((i<lastSubBlock) && (i>0)) {
+#ifdef OPT_1
+      sub_block_is_coded = subblock_has_nonzero_coefficient(coeff, CoeffStride, Sx, Sy);
+      encode_coded_sub_block_flag(ectx, cabac, cIdx,
+                                  coded_sub_block_neighbors[Sx+Sy*sbWidth],
+                                  sub_block_is_coded);
+#else
       sub_block_is_coded = subblock_has_nonzero_coefficient(coeff, CoeffStride, S);
       encode_coded_sub_block_flag(ectx, cabac, cIdx,
                                   coded_sub_block_neighbors[S.x+S.y*sbWidth],
                                   sub_block_is_coded);
+#endif
       inferSbDcSigCoeffFlag=1;
     }
     else if (i==0 || i==lastSubBlock) {
@@ -875,8 +951,13 @@ void encode_residual(encoder_context* ectx,
     }
 
     if (sub_block_is_coded) {
+#ifdef OPT_1
+      if (Sx > 0) coded_sub_block_neighbors[Sx-1 + Sy  *sbWidth] |= 1;
+      if (Sy > 0) coded_sub_block_neighbors[Sx + (Sy-1)*sbWidth] |= 2;
+#else
       if (S.x > 0) coded_sub_block_neighbors[S.x-1 + S.y  *sbWidth] |= 1;
       if (S.y > 0) coded_sub_block_neighbors[S.x + (S.y-1)*sbWidth] |= 2;
+#endif
     }
 
     logtrace(LogSlice,"subblock is coded: %s\n", sub_block_is_coded ? "yes":"no");
@@ -893,12 +974,20 @@ void encode_residual(encoder_context* ectx,
 
 
     if (sub_block_is_coded) {
+#ifdef OPT_1
+      int x0 = Sx<<2;
+      int y0 = Sy<<2;
+
+      int log2w = log2TrafoSize-2;
+      int prevCsbf = coded_sub_block_neighbors[Sx+Sy*sbWidth];
+#else
       int x0 = S.x<<2;
       int y0 = S.y<<2;
 
       int log2w = log2TrafoSize-2;
       int prevCsbf = coded_sub_block_neighbors[S.x+S.y*sbWidth];
-      uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
+#endif
+      const uint8_t* ctxIdxMap = ctxIdxLookup[log2w][!!cIdx][!!scanIdx][prevCsbf];
 
       logdebug(LogSlice,"log2w:%d cIdx:%d scanIdx:%d prevCsbf:%d\n",
                log2w,cIdx,scanIdx,prevCsbf);
@@ -919,8 +1008,13 @@ void encode_residual(encoder_context* ectx,
       int last_coeff =  (i==lastSubBlock) ? lastScanPos-1 : 15;
 
       for (int n= last_coeff ; n>0 ; n--) {
-        int subX = ScanOrderPos[n].x;
-        int subY = ScanOrderPos[n].y;
+#ifdef OPT_1
+        int subX = ScanOrderPos_x[n];
+        int subY = ScanOrderPos_y[n];
+#else
+       int subX = ScanOrderPos[n].x;
+       int subY = ScanOrderPos[n].y;
+#endif
         int xC = x0 + subX;
         int yC = y0 + subY;
 
